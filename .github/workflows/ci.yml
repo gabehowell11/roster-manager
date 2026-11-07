@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      # Lets Qt widgets be created in tests without a visible window.
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev,data]"
+
+      - name: Lint (ruff)
+        run: python -m ruff check .
+
+      - name: Format check (ruff)
+        run: python -m ruff format --check .
+
+      - name: Type check (mypy)
+        run: python -m mypy
+
+      - name: Tests (pytest)
+        run: python -m pytest
