@@ -13,6 +13,7 @@ Always run tools as modules. Application Control blocks the .exe launchers in .v
 - Types: `python -m mypy` (checks `src` and `tests`, configured in pyproject.toml)
 - Single test: `python -m pytest tests/test_architecture.py::test_entry_point_exposes_main`
 - Install: `python -m pip install -e ".[dev,data]"`
+- Git hooks (once per clone): `python -m pre_commit install`. Then ruff check/format runs on each commit; a commit the hooks modify is blocked, so re-stage and commit again. Run on everything: `python -m pre_commit run --all-files`. Keep `rev` in `.pre-commit-config.yaml` matching the installed ruff version.
 
 ## Architecture (src/rostermanager/)
 

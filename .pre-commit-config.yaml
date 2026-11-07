@@ -1,0 +1,9 @@
+# Runs on every `git commit`. Setup once per clone: python -m pre_commit install
+# Keep `rev` in step with the ruff version installed in .venv.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.4
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
