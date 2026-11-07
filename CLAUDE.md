@@ -10,7 +10,8 @@ Always run tools as modules. Application Control blocks the .exe launchers in .v
 - Tests: `python -m pytest`
 - Lint: `python -m ruff check .`
 - Format: `python -m ruff format .`
-- Types: `python -m mypy src`
+- Types: `python -m mypy` (checks `src` and `tests`, configured in pyproject.toml)
+- Single test: `python -m pytest tests/test_architecture.py::test_entry_point_exposes_main`
 - Install: `python -m pip install -e ".[dev,data]"`
 
 ## Architecture (src/rostermanager/)
