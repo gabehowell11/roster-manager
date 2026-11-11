@@ -7,7 +7,7 @@ import pytest
 
 # Modules that must import without pulling in PySide6.
 # Add rostermanager.models, .services and .data here as those packages are created.
-GUI_FREE_MODULES = ["rostermanager"]
+GUI_FREE_MODULES = ["rostermanager", "rostermanager.models"]
 
 
 @pytest.mark.parametrize("module", GUI_FREE_MODULES)
