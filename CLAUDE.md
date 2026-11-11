@@ -51,4 +51,7 @@ Do not use NFL logos or official branding. Team names and colors only. README st
 
 ## Current status
 
-Phase 1 (setup and tooling) in progress. See GitHub issues and the Project board for the roadmap.
+Phases 1 (setup and tooling) and 2 (models, SQLite, nflverse and custom imports) are done.
+Phase 3 (services and the UI for viewing rosters, issues #23-#28) is next, then Phase 4
+(editing, special teams, refresh, Windows build, docs, issues #29-#35). See GitHub issues
+and the Project board for the roadmap.
