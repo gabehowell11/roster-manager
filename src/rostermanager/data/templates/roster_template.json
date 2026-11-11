@@ -1,0 +1,16 @@
+{
+  "team": {
+    "abbreviation": "EXC",
+    "name": "Example City",
+    "primary_color": "#1F4E79",
+    "secondary_color": "#F2C14E"
+  },
+  "players": [
+    {"name": "Sam Example", "position": "QB", "jersey_number": 7, "unit": "offense", "height": "6-3", "weight": 220, "college": "Example State", "years_experience": 4, "rating": 85, "depth_order": 1},
+    {"name": "Riley Backup", "position": "QB", "jersey_number": 12, "unit": "offense", "height": "6-2", "weight": 215, "college": null, "years_experience": 1, "rating": null, "depth_order": 2},
+    {"name": "Jordan Sample", "position": "LT", "jersey_number": 70, "unit": "offense", "height": "6-6", "weight": 315, "college": "Sample Tech", "years_experience": 6, "rating": 80, "depth_order": 1},
+    {"name": "Casey Placeholder", "position": "WR1", "jersey_number": 11, "unit": "offense", "height": "6-1", "weight": 195, "college": "Example State", "years_experience": 2, "rating": 78, "depth_order": 1},
+    {"name": "Morgan Demo", "position": "LCB", "jersey_number": 24, "unit": "defense", "height": "5-11", "weight": 190, "college": "Template University", "years_experience": 3, "rating": 81, "depth_order": 1},
+    {"name": "Taylor Test", "position": "K", "jersey_number": 3, "unit": "special_teams", "height": "6-0", "weight": 190, "college": null, "years_experience": 8, "rating": null, "depth_order": 1}
+  ]
+}

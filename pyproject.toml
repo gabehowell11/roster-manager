@@ -15,6 +15,10 @@ data = ["pandas", "nflreadpy", "polars"]
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+# Custom roster templates users copy and fill in.
+"rostermanager.data" = ["templates/*.csv", "templates/*.json"]
+
 [tool.ruff]
 line-length = 100
 
