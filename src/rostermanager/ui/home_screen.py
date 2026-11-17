@@ -24,6 +24,7 @@ from rostermanager.services import (
     NFL_TEAM_ABBREVIATIONS,
     RosterImportError,
     RosterService,
+    copy_template,
 )
 from rostermanager.ui.background import BackgroundRunner
 from rostermanager.ui.team_dialog import TeamDialog
@@ -85,7 +86,10 @@ class HomeScreen(QWidget):
         self.import_button = QPushButton("Import CSV or JSON...")
         self.import_button.clicked.connect(self.start_import)
         custom = QGroupBox("Custom roster")
-        custom.setLayout(_centered(self.import_button))
+        self.template_button = QPushButton("Save a template...")
+        self.template_button.setToolTip("Save a blank CSV or JSON roster to fill in.")
+        self.template_button.clicked.connect(self.save_template)
+        custom.setLayout(_centered(self.import_button, self.template_button))
 
         self.status_label = QLabel()
         self.status_label.setObjectName("Status")
@@ -188,6 +192,21 @@ class HomeScreen(QWidget):
         self.refresh()
         self._select(roster.team.abbreviation)
 
+    def save_template(self) -> None:
+        """Save a roster template where the user picks, to fill in and import."""
+        target = self.choose_save_path()
+        if target is None:
+            return
+        kind = "json" if target.suffix.lower() == ".json" else "csv"
+        if target.suffix.lower() not in (".csv", ".json"):
+            target = target.with_suffix(".csv")
+        try:
+            saved = copy_template(kind, target)
+        except OSError as error:
+            self.show_error("Could not save the template", str(error))
+            return
+        self.status_label.setText(f"Template saved to {saved}")
+
     # Delete
 
     def delete_selected(self) -> None:
@@ -215,6 +234,15 @@ class HomeScreen(QWidget):
     def choose_file(self) -> Path | None:
         name, _ = QFileDialog.getOpenFileName(
             self, "Import roster", "", "Roster files (*.csv *.json);;All files (*)"
+        )
+        return Path(name) if name else None
+
+    def choose_save_path(self) -> Path | None:
+        name, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save roster template",
+            str(Path.home() / "roster_template.csv"),
+            "CSV (*.csv);;JSON (*.json)",
         )
         return Path(name) if name else None
 
