@@ -6,12 +6,16 @@ from PySide6.QtWidgets import QLabel, QWidget
 
 from rostermanager.models import DepthChart, Team, Unit
 from rostermanager.services import FieldSpot, layout_depth_chart
-from rostermanager.services.field_layout import DEFENSE_LINE, OFFENSE_LINE
+from rostermanager.services.field_layout import (
+    DEFENSE_LINE,
+    OFFENSE_LINE,
+    SPECIAL_TEAMS_LINE,
+)
 from rostermanager.ui.player_card import STARTER_SIZE, PlayerCard
 
 MAX_BACKUPS_SHOWN = 3
 BACKUP_OFFSET = QPoint(8, 12)  # each backup peeks out this far from the one in front
-MIN_FIELD_SIZE = (1000, 620)
+MIN_FIELD_SIZE = (1000, 600)
 
 # Muted greens so the field sits calmly on the dark blue theme.
 _GRASS = QColor("#2D5E3A")
@@ -111,13 +115,14 @@ class FieldView(QWidget):
                 card.move(x, y)
 
     def line_of_scrimmage_y(self) -> int | None:
-        """Pixel row of the line of scrimmage, or None for special teams."""
-        if self.chart is None or self.chart.unit is Unit.SPECIAL_TEAMS:
+        """Pixel row of the line of scrimmage, or None before a chart is set."""
+        if self.chart is None:
             return None
         gap = STARTER_SIZE[1] // 2 + 6
-        if self.chart.unit is Unit.OFFENSE:
-            return round(OFFENSE_LINE * self.height()) - gap
-        return round(DEFENSE_LINE * self.height()) + gap
+        if self.chart.unit is Unit.DEFENSE:
+            return round(DEFENSE_LINE * self.height()) + gap
+        line = OFFENSE_LINE if self.chart.unit is Unit.OFFENSE else SPECIAL_TEAMS_LINE
+        return round(line * self.height()) - gap
 
     def paintEvent(self, event: QPaintEvent) -> None:
         painter = QPainter(self)

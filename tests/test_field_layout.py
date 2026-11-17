@@ -4,7 +4,7 @@ import pytest
 
 from rostermanager.models import DepthChart, Player, Unit
 from rostermanager.services import FieldSpot, layout_depth_chart, layout_slots
-from rostermanager.services.field_layout import OVERFLOW_Y
+from rostermanager.services.field_layout import OVERFLOW_Y, SPECIAL_TEAMS_OVERFLOW_Y
 
 OFFENSE = ["QB", "RB", "WR1", "WR2", "WR3", "TE", "LT", "LG", "C", "RG", "RT"]
 DEFENSE_43 = ["LDE", "LDT", "RDT", "RDE", "WLB", "MLB", "SLB", "LCB", "RCB", "FS", "SS"]
@@ -78,12 +78,21 @@ def test_offense_labels_on_defense_are_unknown() -> None:
     assert spots["QB"].y == OVERFLOW_Y
 
 
-def test_special_teams_uses_a_grid() -> None:
-    labels = ["K", "P", "LS", "H", "KR", "PR", "GUN1"]
-    spots = layout_slots(Unit.SPECIAL_TEAMS, labels)
-    assert len(set(spots.values())) == len(labels)
-    assert all(in_bounds(spot) for spot in spots.values())
-    assert spots["GUN1"].y > spots["K"].y  # seventh label starts a second row
+SPECIAL = ["PK", "P", "LS", "H", "KR", "PR"]
+
+
+def test_special_teams_have_named_spots() -> None:
+    spots = layout_slots(Unit.SPECIAL_TEAMS, SPECIAL)
+    assert len(set(spots.values())) == len(SPECIAL)
+    assert spots["LS"].y < spots["H"].y < spots["PK"].y < spots["KR"].y
+    assert spots["KR"].x < spots["PR"].x
+    assert all(spot.y != SPECIAL_TEAMS_OVERFLOW_Y for spot in spots.values())
+
+
+def test_special_teams_extras_overflow_along_the_top() -> None:
+    spots = layout_slots(Unit.SPECIAL_TEAMS, [*SPECIAL, "KR2", "GUN1", "KR3"])
+    assert spots["KR2"].y == spots["KR"].y  # second returner gets the other deep spot
+    assert spots["GUN1"].y == spots["KR3"].y == SPECIAL_TEAMS_OVERFLOW_Y
 
 
 def test_empty_labels() -> None:
@@ -105,11 +114,16 @@ def test_layout_depth_chart_uses_slots() -> None:
 
 @pytest.mark.parametrize(
     ("unit", "labels"),
-    [(Unit.OFFENSE, OFFENSE), (Unit.DEFENSE, DEFENSE_43), (Unit.DEFENSE, DEFENSE_34)],
+    [
+        (Unit.OFFENSE, OFFENSE),
+        (Unit.DEFENSE, DEFENSE_43),
+        (Unit.DEFENSE, DEFENSE_34),
+        (Unit.SPECIAL_TEAMS, ["PK", "P", "LS", "H", "KR", "PR", "KR2", "PR2", "KOS"]),
+    ],
 )
 def test_starter_cards_do_not_overlap_at_minimum_field_size(unit: Unit, labels: list[str]) -> None:
-    # Matches the UI's minimum field (1000x620) and starter card (100x80).
-    width, height, card_w, card_h = 1000, 620, 100, 80
+    # Matches the UI's minimum field (1000x600) and starter card (100x80).
+    width, height, card_w, card_h = 1000, 600, 100, 80
     spots = list(layout_slots(unit, labels).values())
     for i, a in enumerate(spots):
         for b in spots[i + 1 :]:
