@@ -166,3 +166,68 @@ def test_team_view_shows_special_teams(tmp_path: Path) -> None:
     assert view.unit_buttons[Unit.SPECIAL_TEAMS].text() == "Special Teams"
     assert set(view.field.slot_cards) == {"PK", "P", "KR"}
     assert view.field.line_of_scrimmage_y() is not None
+
+
+FULL = Roster(
+    team=TEAM,
+    players=[
+        *players("offense", "QB", 2),
+        *players("offense", "RB", 2),
+        *players("offense", "TE", 3),
+        *players("offense", "WR1", 1),
+        *players("offense", "WR2", 1),
+        *[p for label in ("LT", "LG", "C", "RG", "RT") for p in players("offense", label, 1)],
+        *players("defense", "LCB", 2),
+    ],
+)
+
+
+def test_formation_picker_redraws_field_and_remembers_per_unit(tmp_path: Path) -> None:
+    view = TeamView(RosterService(RosterRepository(tmp_path / "r.db")))
+    view.set_roster(FULL)
+    assert view.formation_picker.currentText() == "Depth chart"
+    assert set(view.field.slot_cards) == {
+        "QB",
+        "RB",
+        "TE",
+        "WR1",
+        "WR2",
+        "LT",
+        "LG",
+        "C",
+        "RG",
+        "RT",
+    }
+
+    view.formation_picker.setCurrentText("Goal Line (23)")
+    assert view.field.formation is not None
+    assert view.field.slot_cards["TE2"][0].player.name == "TE 2"
+    assert view.field.slot_cards["FB"][0].player.name == "RB 2"
+    assert view.field.open_cards == {}
+
+    view.unit_buttons[Unit.DEFENSE].click()
+    assert view.formation_picker.currentText() == "Depth chart"
+    view.formation_picker.setCurrentText("4-3")
+    assert "LDE" in view.field.open_cards  # a corners-only defense leaves the front open
+    assert view.field.slot_cards["LCB"][0].player.name == "LCB 1"
+
+    view.unit_buttons[Unit.OFFENSE].click()
+    assert view.formation_picker.currentText() == "Goal Line (23)"
+
+    view.unit_buttons[Unit.SPECIAL_TEAMS].click()
+    assert view.formation_picker.isHidden()
+
+
+def test_formation_cards_still_edit_the_real_slot(tmp_path: Path) -> None:
+    service = RosterService(RosterRepository(tmp_path / "r.db"))
+    service.repo.save_roster(FULL)
+    view = TeamView(service)
+    view.set_roster(service.load_roster("XYZ"))
+    view.formation_picker.setCurrentText("Goal Line (23)")
+
+    te3 = view.field.slot_cards["TE3"][0]
+    assert te3.slot_size == 3
+    te3.action_requested.emit(te3.player, "starter")  # TE 3 becomes the TE starter
+
+    assert view.formation_picker.currentText() == "Goal Line (23)"
+    assert view.field.slot_cards["TE1"][0].player.name == "TE 3"
