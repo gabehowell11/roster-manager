@@ -14,7 +14,9 @@ Labels are matched in three steps:
 3. Anything else (custom labels like "JOKER") goes in an overflow row along the
    bottom, in the order given, so every slot is always shown somewhere.
 
-Special teams has no formation; its slots are laid out in a grid.
+Special teams is drawn like a field goal or punt: snapper on the line, holder
+and kicker behind, punter to the side, and returners deep. Its overflow row runs
+along the top, since the returners use the bottom.
 """
 
 import re
@@ -35,6 +37,8 @@ class FieldSpot:
 OFFENSE_LINE = 0.30
 DEFENSE_LINE = 0.72
 OVERFLOW_Y = 0.92
+SPECIAL_TEAMS_LINE = OFFENSE_LINE
+SPECIAL_TEAMS_OVERFLOW_Y = 0.10
 
 _OFFENSE_NAMED: dict[str, FieldSpot] = {
     "LT": FieldSpot(0.28, OFFENSE_LINE),
@@ -109,19 +113,37 @@ _DEFENSE_GROUPS: dict[str, tuple[FieldSpot, ...]] = {
     "DB": tuple(_DEFENSE_NAMED[k] for k in ("LCB", "RCB", "FS", "SS", "NB")),
 }
 
+_SPECIAL_NAMED: dict[str, FieldSpot] = {
+    "LS": FieldSpot(0.50, SPECIAL_TEAMS_LINE),
+    "H": FieldSpot(0.50, 0.48),
+    "K": FieldSpot(0.50, 0.64),
+    "PK": FieldSpot(0.50, 0.64),
+    "KOS": FieldSpot(0.32, 0.64),  # kickoff specialist
+    "P": FieldSpot(0.70, 0.56),
+    "KR": FieldSpot(0.35, 0.82),
+    "PR": FieldSpot(0.65, 0.82),
+}
+
+_SPECIAL_GROUPS: dict[str, tuple[FieldSpot, ...]] = {
+    "KR": (FieldSpot(0.35, 0.82), FieldSpot(0.15, 0.82)),
+    "PR": (FieldSpot(0.65, 0.82), FieldSpot(0.85, 0.82)),
+    "K": (FieldSpot(0.50, 0.64), FieldSpot(0.32, 0.64)),
+    "PK": (FieldSpot(0.50, 0.64), FieldSpot(0.32, 0.64)),
+    "P": (FieldSpot(0.70, 0.56),),
+    "LS": (FieldSpot(0.50, SPECIAL_TEAMS_LINE),),
+    "H": (FieldSpot(0.50, 0.48),),
+}
+
 _LABEL = re.compile(r"^([A-Z]+?)(\d*)$")
-_GRID_COLUMNS = 6
 
 
 def layout_slots(unit: Unit, labels: Sequence[str]) -> dict[str, FieldSpot]:
     """A spot for every label, in the order given. No two labels share a spot."""
-    if unit is Unit.SPECIAL_TEAMS:
-        return _grid(labels)
-    named, groups = (
-        (_OFFENSE_NAMED, _OFFENSE_GROUPS)
-        if unit is Unit.OFFENSE
-        else (_DEFENSE_NAMED, _DEFENSE_GROUPS)
-    )
+    named, groups, overflow_y = {
+        Unit.OFFENSE: (_OFFENSE_NAMED, _OFFENSE_GROUPS, OVERFLOW_Y),
+        Unit.DEFENSE: (_DEFENSE_NAMED, _DEFENSE_GROUPS, OVERFLOW_Y),
+        Unit.SPECIAL_TEAMS: (_SPECIAL_NAMED, _SPECIAL_GROUPS, SPECIAL_TEAMS_OVERFLOW_Y),
+    }[unit]
 
     spots: dict[str, FieldSpot] = {}
     taken: set[FieldSpot] = set()
@@ -166,7 +188,7 @@ def layout_slots(unit: Unit, labels: Sequence[str]) -> dict[str, FieldSpot]:
             continue
         leftovers.append(label)
 
-    spots.update(_overflow_row(leftovers))
+    spots.update(_overflow_row(leftovers, overflow_y))
     return {label: spots[label] for label in labels}
 
 
@@ -175,19 +197,6 @@ def layout_depth_chart(chart: DepthChart) -> dict[str, FieldSpot]:
     return layout_slots(chart.unit, list(chart.slots))
 
 
-def _overflow_row(labels: Sequence[str]) -> dict[str, FieldSpot]:
+def _overflow_row(labels: Sequence[str], y: float) -> dict[str, FieldSpot]:
     count = len(labels)
-    return {
-        label: FieldSpot((index + 1) / (count + 1), OVERFLOW_Y)
-        for index, label in enumerate(labels)
-    }
-
-
-def _grid(labels: Sequence[str]) -> dict[str, FieldSpot]:
-    rows = max(1, -(-len(labels) // _GRID_COLUMNS))
-    spots = {}
-    for index, label in enumerate(labels):
-        row, column = divmod(index, _GRID_COLUMNS)
-        in_row = min(_GRID_COLUMNS, len(labels) - row * _GRID_COLUMNS)
-        spots[label] = FieldSpot((column + 1) / (in_row + 1), (row + 1) / (rows + 1))
-    return spots
+    return {label: FieldSpot((index + 1) / (count + 1), y) for index, label in enumerate(labels)}

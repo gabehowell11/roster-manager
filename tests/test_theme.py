@@ -58,3 +58,17 @@ def test_team_title_is_centered_in_team_color(tmp_path: Path) -> None:
     assert view.title.text() == "Example City"
     assert view.title.alignment() & Qt.AlignmentFlag.AlignHCenter
     assert "#E31837" in view.title.styleSheet()
+
+
+def test_team_title_is_centered_on_the_window(tmp_path: Path) -> None:
+    team = Team(abbreviation="XYZ", name="Example City")
+    view = TeamView(RosterService(RosterRepository(tmp_path / "r.db")))
+    view.resize(1200, 700)
+    view.set_roster(
+        Roster(team=team, players=[Player(name="Q", position="QB", unit="offense", depth_order=1)])
+    )
+    view.show()
+    QApplication.processEvents()
+    title_center = view.title.geometry().center().x()
+    assert abs(title_center - view.width() // 2) <= 4
+    view.close()

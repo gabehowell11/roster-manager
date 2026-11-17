@@ -1,4 +1,6 @@
-"""The team view: one team's roster on a football field, offense or defense."""
+"""The team view: one team's roster on a football field: offense, defense, or special teams."""
+
+from collections.abc import Callable
 
 from collections.abc import Callable
 
@@ -21,7 +23,7 @@ from rostermanager.ui.field_view import FieldView
 from rostermanager.ui.player_dialog import PlayerDialog
 from rostermanager.ui.theme import team_title_color
 
-SHOWN_UNITS = (Unit.OFFENSE, Unit.DEFENSE)
+SHOWN_UNITS = (Unit.OFFENSE, Unit.DEFENSE, Unit.SPECIAL_TEAMS)
 
 
 class TeamView(QWidget):
@@ -58,12 +60,18 @@ class TeamView(QWidget):
         self.unit_buttons[self.unit].setChecked(True)
 
         # Three equal columns keep the title centered on the window, not between buttons.
+        toggles.addStretch()
+
+        # Back button left, title on the true center (equal side columns), toggles below.
         header = QGridLayout()
         header.addWidget(self.back_button, 0, 0, Qt.AlignmentFlag.AlignLeft)
         header.addWidget(self.title, 0, 1)
-        header.addLayout(toggles, 0, 2)
-        for column in range(3):
-            header.setColumnStretch(column, 1)
+        side = self.back_button.sizeHint().width()
+        for column, stretch in ((0, 0), (1, 1), (2, 0)):
+            header.setColumnStretch(column, stretch)
+        header.setColumnMinimumWidth(0, side)
+        header.setColumnMinimumWidth(2, side)
+        header.addLayout(toggles, 1, 0, 1, 3)
 
         self.field = FieldView()
         self.field.player_clicked.connect(self.open_player)
@@ -137,7 +145,7 @@ class TeamView(QWidget):
         QMessageBox.warning(self, "Could not change the depth chart", text)
 
     def show_unit(self, unit: Unit) -> None:
-        """Switch the field between offense and defense."""
+        """Switch the field to another unit."""
         self.unit = unit
         self.unit_buttons[unit].setChecked(True)
         if self.roster is not None:

@@ -148,3 +148,21 @@ def test_stacks_at_the_sideline_stay_inside_the_field() -> None:
     field.set_depth_chart(roster.depth_chart(Unit.OFFENSE), TEAM)
     for card in field.slot_cards["WR2"]:
         assert field.rect().contains(card.geometry())
+
+
+def test_team_view_shows_special_teams(tmp_path: Path) -> None:
+    roster = Roster(
+        team=TEAM,
+        players=[
+            *players("special_teams", "PK", 1),
+            *players("special_teams", "P", 1),
+            *players("special_teams", "KR", 2),
+        ],
+    )
+    view = TeamView(RosterService(RosterRepository(tmp_path / "r.db")))
+    view.set_roster(roster)
+    view.unit_buttons[Unit.SPECIAL_TEAMS].click()
+    assert view.unit is Unit.SPECIAL_TEAMS
+    assert view.unit_buttons[Unit.SPECIAL_TEAMS].text() == "Special Teams"
+    assert set(view.field.slot_cards) == {"PK", "P", "KR"}
+    assert view.field.line_of_scrimmage_y() is not None

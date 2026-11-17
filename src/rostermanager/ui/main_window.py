@@ -14,7 +14,7 @@ class MainWindow(QMainWindow):
         super().__init__(parent)
         self.service = service
         self.setWindowTitle("Roster Manager")
-        self.resize(1100, 750)
+        self.resize(1100, 800)
 
         self.home = HomeScreen(service)
         self.team_view = TeamView(service)
