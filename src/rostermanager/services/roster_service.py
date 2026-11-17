@@ -4,12 +4,15 @@ The UI never touches SQLite or the importers directly. It calls RosterService,
 which wraps the data layer and turns its failures into a few clear error types.
 """
 
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from rostermanager.data import RosterRepository
 from rostermanager.data.custom_import import RosterImportError, import_roster
 from rostermanager.models import DepthChart, Roster, Team, Unit
+from rostermanager.services import depth_editing
+from rostermanager.services.depth_editing import EditError, PlayerKey
 
 if TYPE_CHECKING:
     from rostermanager.data.nflverse import NflverseSource
@@ -24,6 +27,8 @@ NFL_TEAM_ABBREVIATIONS: tuple[str, ...] = (
 
 __all__ = [
     "NFL_TEAM_ABBREVIATIONS",
+    "EditError",
+    "PlayerKey",
     "RosterImportError",
     "RosterNotFoundError",
     "RosterService",
@@ -100,3 +105,37 @@ class RosterService:
             raise TeamDownloadError(
                 f"could not download {abbreviation.strip().upper()}: {error}"
             ) from error
+
+    # Editing. Each loads the saved roster, applies one change, validates, saves,
+    # and returns the updated roster. Failures raise EditError and save nothing.
+
+    def _edit(self, abbreviation: str, change: Callable[[Roster], Roster]) -> Roster:
+        roster = change(self.load_roster(abbreviation))
+        self.repo.save_roster(roster)
+        return roster
+
+    def move_player(self, abbreviation: str, key: PlayerKey, to_depth: int) -> Roster:
+        return self._edit(abbreviation, lambda r: depth_editing.move_player(r, key, to_depth))
+
+    def promote(self, abbreviation: str, key: PlayerKey) -> Roster:
+        return self._edit(abbreviation, lambda r: depth_editing.promote(r, key))
+
+    def demote(self, abbreviation: str, key: PlayerKey) -> Roster:
+        return self._edit(abbreviation, lambda r: depth_editing.demote(r, key))
+
+    def make_starter(self, abbreviation: str, key: PlayerKey) -> Roster:
+        return self._edit(abbreviation, lambda r: depth_editing.make_starter(r, key))
+
+    def swap_players(self, abbreviation: str, a: PlayerKey, b: PlayerKey) -> Roster:
+        return self._edit(abbreviation, lambda r: depth_editing.swap_players(r, a, b))
+
+    def update_player(
+        self, abbreviation: str, key: PlayerKey, changes: Mapping[str, object]
+    ) -> Roster:
+        return self._edit(abbreviation, lambda r: depth_editing.update_player(r, key, changes))
+
+    def remove_player(self, abbreviation: str, key: PlayerKey) -> Roster:
+        return self._edit(abbreviation, lambda r: depth_editing.remove_player(r, key))
+
+    def add_player(self, abbreviation: str, data: Mapping[str, object]) -> Roster:
+        return self._edit(abbreviation, lambda r: depth_editing.add_player(r, data))
