@@ -1,13 +1,17 @@
 import sys
 
-from PySide6.QtWidgets import QApplication, QLabel
-
 
 def main() -> None:
+    # Imported here so `import rostermanager` never pulls in PySide6.
+    from PySide6.QtWidgets import QApplication
+
+    from rostermanager.services import RosterService
+    from rostermanager.ui.main_window import MainWindow
+
     app = QApplication(sys.argv)
-    label = QLabel("Roster Manager")
-    label.resize(400, 200)
-    label.show()
+    app.setApplicationName("Roster Manager")
+    window = MainWindow(RosterService())
+    window.show()
     sys.exit(app.exec())
 
 
