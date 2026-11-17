@@ -5,8 +5,8 @@ from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
 
 from rostermanager.models import Player, Team
 
-STARTER_SIZE = (120, 84)
-BACKUP_SIZE = (104, 64)
+STARTER_SIZE = (100, 80)
+BACKUP_SIZE = (92, 60)
 
 
 def _luminance(hex_color: str) -> float:

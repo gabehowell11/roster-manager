@@ -101,3 +101,18 @@ def test_layout_depth_chart_uses_slots() -> None:
         ],
     )
     assert list(layout_depth_chart(chart)) == ["LCB", "FS"]
+
+
+@pytest.mark.parametrize(
+    ("unit", "labels"),
+    [(Unit.OFFENSE, OFFENSE), (Unit.DEFENSE, DEFENSE_43), (Unit.DEFENSE, DEFENSE_34)],
+)
+def test_starter_cards_do_not_overlap_at_minimum_field_size(unit: Unit, labels: list[str]) -> None:
+    # Matches the UI's minimum field (1000x620) and starter card (100x80).
+    width, height, card_w, card_h = 1000, 620, 100, 80
+    spots = list(layout_slots(unit, labels).values())
+    for i, a in enumerate(spots):
+        for b in spots[i + 1 :]:
+            apart_x = abs(a.x - b.x) * width >= card_w
+            apart_y = abs(a.y - b.y) * height >= card_h
+            assert apart_x or apart_y, (a, b)
