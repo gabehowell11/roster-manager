@@ -16,12 +16,13 @@ import argparse
 import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any, Protocol
 
 import polars as pl
 
 from rostermanager.data.repository import RosterRepository
-from rostermanager.models import Player, Roster, Team, Unit
+from rostermanager.models import Player, Roster, RosterSource, Team, Unit
 
 
 class NflverseSource(Protocol):
@@ -168,6 +169,23 @@ def _slot_labels(depth: pl.DataFrame) -> dict[tuple[str, int], str]:
     return labels
 
 
+def fetch_team(
+    abbreviation: str,
+    season: int | None = None,
+    source: NflverseSource | None = None,
+) -> Roster:
+    """Download one team's roster from nflverse without saving it."""
+    abbreviation = abbreviation.strip().upper()
+    source = source if source is not None else _Nflreadpy()
+    season = season if season is not None else current_season()
+    return build_roster(
+        abbreviation,
+        rosters=source.load_rosters(season),
+        depth_charts=source.load_depth_charts(season),
+        teams=source.load_teams(),
+    )
+
+
 def import_team(
     abbreviation: str,
     repo: RosterRepository,
@@ -175,16 +193,8 @@ def import_team(
     source: NflverseSource | None = None,
 ) -> Roster:
     """Download one team's roster from nflverse, save it, and return it."""
-    abbreviation = abbreviation.strip().upper()
-    source = source if source is not None else _Nflreadpy()
-    season = season if season is not None else current_season()
-    roster = build_roster(
-        abbreviation,
-        rosters=source.load_rosters(season),
-        depth_charts=source.load_depth_charts(season),
-        teams=source.load_teams(),
-    )
-    repo.save_roster(roster)
+    roster = fetch_team(abbreviation, season=season, source=source)
+    repo.save_roster(roster, source=RosterSource.NFLVERSE, imported_at=datetime.now(UTC))
     return roster
 
 
