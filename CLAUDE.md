@@ -51,7 +51,14 @@ Do not use NFL logos or official branding. Team names and colors only. README st
 
 ## Current status
 
-Phases 1 (setup and tooling) and 2 (models, SQLite, nflverse and custom imports) are done.
-Phase 3 (services and the UI for viewing rosters, issues #23-#28) is next, then Phase 4
-(editing, special teams, refresh, Windows build, docs, issues #29-#35). See GitHub issues
-and the Project board for the roadmap.
+Phases 1-4 are done: setup, models and imports, the roster/field UI, and editing,
+formations, special teams, refresh, the Windows build, and docs (issues #19-#35, #45).
+See GitHub issues and the Project board for what's next.
+
+- Windows build: `python packaging/build.py` writes `dist/RosterManager/`; check it with
+  `dist\RosterManager\RosterManager.exe --self-test`. CI builds and uploads it.
+- README screenshots: `python docs/make_screenshots.py` (offscreen, made-up team).
+- User guide: `docs/user-guide.md`. Update it when behavior changes.
+- SQLite schema is versioned (`PRAGMA user_version`, currently 2); add a migration step in
+  `RosterRepository.__init__` for any schema change.
+- Stacked PRs are fine: the repo auto-deletes merged branches, so PRs retarget to `main`.
