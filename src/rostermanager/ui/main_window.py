@@ -17,7 +17,7 @@ class MainWindow(QMainWindow):
         self.resize(1100, 750)
 
         self.home = HomeScreen(service)
-        self.team_view = TeamView()
+        self.team_view = TeamView(service)
         self.home.team_selected.connect(self.open_team)
         self.team_view.back_requested.connect(self.show_home)
 

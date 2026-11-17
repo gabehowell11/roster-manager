@@ -1,6 +1,6 @@
 """FieldView: one unit drawn on a football field, each slot as a stack of cards."""
 
-from PySide6.QtCore import QPoint, QRect, Qt
+from PySide6.QtCore import QPoint, QRect, Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPaintEvent, QPen, QResizeEvent
 from PySide6.QtWidgets import QLabel, QWidget
 
@@ -24,8 +24,11 @@ class FieldView(QWidget):
 
     The starter card sits in front at the slot's spot. Up to MAX_BACKUPS_SHOWN
     backups sit behind it, fanned away from the line of scrimmage: downward on
-    offense, upward on defense. Hover a card for full details.
+    offense, upward on defense. Hover a card for full details; click it to emit
+    player_clicked with the Player.
     """
+
+    player_clicked = Signal(object)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -54,6 +57,8 @@ class FieldView(QWidget):
         for label, players in chart.slots.items():
             shown = players[: MAX_BACKUPS_SHOWN + 1]
             cards = [PlayerCard(p, team, starter=i == 0, parent=self) for i, p in enumerate(shown)]
+            for card in cards:
+                card.clicked.connect(self.player_clicked.emit)
             # Later-raised widgets draw on top: deepest backup first, starter last.
             for card in reversed(cards):
                 card.raise_()
