@@ -1,5 +1,6 @@
 """The home screen: saved teams, downloading a real NFL team, importing a custom file."""
 
+from datetime import datetime
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
@@ -18,7 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from rostermanager.models import Roster, Team
+from rostermanager.models import Roster, RosterSource, SavedTeam, Team
 from rostermanager.services import (
     NFL_TEAM_ABBREVIATIONS,
     RosterImportError,
@@ -58,7 +59,12 @@ class HomeScreen(QWidget):
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.open_button = QPushButton("Open team")
         self.open_button.clicked.connect(self._open_selected)
-        open_row = _centered(self.open_button)
+        self.refresh_button = QPushButton("Refresh from NFL data")
+        self.refresh_button.setToolTip("Download this team again to get the latest roster.")
+        self.refresh_button.clicked.connect(self.start_refresh)
+        self.delete_button = QPushButton("Delete team")
+        self.delete_button.clicked.connect(self.delete_selected)
+        open_row = _centered(self.open_button, self.refresh_button, self.delete_button)
 
         self.empty_label.setObjectName("Muted")
         saved = QGroupBox("Saved teams")
@@ -102,8 +108,11 @@ class HomeScreen(QWidget):
     def refresh(self) -> None:
         """Reload the saved teams from the service."""
         self.team_list.clear()
-        for team in self.service.list_teams():
-            item = QListWidgetItem(f"{team.name} ({team.abbreviation})")
+        self.saved: dict[str, SavedTeam] = {}
+        for saved in self.service.list_saved_teams():
+            team = saved.team
+            self.saved[team.abbreviation] = saved
+            item = QListWidgetItem(f"{team.name} ({team.abbreviation})\n{describe_saved(saved)}")
             item.setData(Qt.ItemDataRole.UserRole, team.abbreviation)
             self.team_list.addItem(item)
         has_teams = self.team_list.count() > 0
@@ -114,9 +123,23 @@ class HomeScreen(QWidget):
     # Download
 
     def start_download(self) -> None:
-        """Download the picked team in the background."""
-        abbreviation = self.team_picker.currentText()
+        """Download the picked team in the background, after asking if it replaces one."""
+        self._download(self.team_picker.currentText())
+
+    def start_refresh(self) -> None:
+        """Re-download the selected real team."""
+        abbreviation = self._selected_abbreviation()
+        if abbreviation is not None:
+            self._download(abbreviation)
+
+    def _download(self, abbreviation: str) -> None:
+        existing = self.service.saved_team(abbreviation)
+        if existing is not None and not self.confirm(
+            f"Replace {existing.team.name}?", replace_warning(existing)
+        ):
+            return
         self.download_button.setEnabled(False)
+        self.refresh_button.setEnabled(False)
         self.status_label.setText(f"Downloading {abbreviation}...")
         self.runner.run(
             lambda: self.service.download_nfl_team(abbreviation),
@@ -126,12 +149,14 @@ class HomeScreen(QWidget):
 
     def _download_done(self, roster: Roster) -> None:
         self.download_button.setEnabled(True)
+        self._update_buttons()
         self.status_label.setText(f"Saved {roster.team.name} ({len(roster.players)} players).")
         self.refresh()
         self._select(roster.team.abbreviation)
 
     def _download_failed(self, error: Exception) -> None:
         self.download_button.setEnabled(True)
+        self._update_buttons()
         self.status_label.setText("Download failed.")
         self.show_error("Download failed", str(error))
 
@@ -148,16 +173,44 @@ class HomeScreen(QWidget):
             if team is None:
                 return
         try:
-            roster = self.service.import_custom_file(path, team)
+            roster = self.service.read_custom_file(path, team)
         except RosterImportError as error:
             self.status_label.setText("Import failed.")
             self.show_error(f"Could not import {path.name}", "\n".join(error.problems))
             return
+        existing = self.service.saved_team(roster.team.abbreviation)
+        if existing is not None and not self.confirm(
+            f"Replace {existing.team.name}?", replace_warning(existing, custom=True)
+        ):
+            return
+        self.service.save_custom_roster(roster)
         self.status_label.setText(f"Imported {roster.team.name} ({len(roster.players)} players).")
         self.refresh()
         self._select(roster.team.abbreviation)
 
+    # Delete
+
+    def delete_selected(self) -> None:
+        abbreviation = self._selected_abbreviation()
+        if abbreviation is None:
+            return
+        name = self.saved[abbreviation].team.name
+        if not self.confirm(
+            f"Delete {name}?",
+            f"{name} and all its players, ratings, and depth chart changes will be removed. "
+            "This cannot be undone.",
+        ):
+            return
+        self.service.delete_team(abbreviation)
+        self.status_label.setText(f"Deleted {name}.")
+        self.refresh()
+
     # Dialogs, separate so tests can replace them
+
+    def confirm(self, title: str, text: str) -> bool:
+        """Ask a yes/no question."""
+        answer = QMessageBox.question(self, title, text)
+        return answer == QMessageBox.StandardButton.Yes
 
     def choose_file(self) -> Path | None:
         name, _ = QFileDialog.getOpenFileName(
@@ -188,8 +241,18 @@ class HomeScreen(QWidget):
                 self.team_list.setCurrentItem(item)
                 return
 
+    def _selected_abbreviation(self) -> str | None:
+        items = self.team_list.selectedItems()
+        return str(items[0].data(Qt.ItemDataRole.UserRole)) if items else None
+
     def _update_buttons(self) -> None:
-        self.open_button.setEnabled(bool(self.team_list.selectedItems()))
+        abbreviation = self._selected_abbreviation()
+        saved = self.saved.get(abbreviation) if abbreviation is not None else None
+        self.open_button.setEnabled(saved is not None)
+        self.delete_button.setEnabled(saved is not None and not self.runner.busy)
+        self.refresh_button.setEnabled(
+            saved is not None and saved.source is RosterSource.NFLVERSE and not self.runner.busy
+        )
 
     def _open_selected(self) -> None:
         items = self.team_list.selectedItems()
@@ -208,3 +271,37 @@ def _centered(*widgets: QWidget) -> QHBoxLayout:
         row.addWidget(widget)
     row.addStretch()
     return row
+
+
+def format_date(moment: datetime | None) -> str:
+    """Like "Nov 16, 2026" in local time, or "date unknown"."""
+    if moment is None:
+        return "date unknown"
+    local = moment.astimezone()
+    return f"{local:%b} {local.day}, {local.year}"
+
+
+def describe_saved(saved: SavedTeam) -> str:
+    """Second line of a team in the list, e.g. "NFL data, downloaded Nov 16, 2026, 61 players"."""
+    plural = "" if saved.player_count == 1 else "s"
+    count = f"{saved.player_count} player{plural}"
+    if saved.source is RosterSource.NFLVERSE:
+        return f"NFL data, downloaded {format_date(saved.imported_at)}, {count}"
+    return f"Custom roster, imported {format_date(saved.imported_at)}, {count}"
+
+
+def replace_warning(existing: SavedTeam, custom: bool = False) -> str:
+    """What will be lost if this saved team is replaced."""
+    name = existing.team.name
+    if not custom and existing.source is RosterSource.NFLVERSE:
+        return (
+            f"{name} was downloaded {format_date(existing.imported_at)}. Refreshing replaces its "
+            "depth chart and player details with the latest NFL data, so your reordering and "
+            "edits are lost. Your ratings are kept for players still on the team."
+        )
+    kind = "custom roster" if existing.source is RosterSource.CUSTOM else "downloaded NFL team"
+    return (
+        f"A {kind} with the abbreviation {existing.team.abbreviation} is already saved "
+        f"({name}, {existing.player_count} players). Continuing replaces it completely, "
+        "including its ratings and depth chart changes."
+    )

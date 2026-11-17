@@ -76,7 +76,7 @@ def test_download_runs_in_background_and_adds_team(repo: RosterRepository) -> No
     assert errors == []
     assert home.download_button.isEnabled()
     assert home.team_list.count() == 1
-    assert home.team_list.currentItem().text() == "Example City Testers (XYZ)"
+    assert home.team_list.currentItem().text().splitlines()[0] == "Example City Testers (XYZ)"
 
 
 def test_download_failure_shows_error(repo: RosterRepository) -> None:
@@ -114,7 +114,7 @@ def test_csv_import_asks_for_team_and_saves(repo: RosterRepository, tmp_path: Pa
 
     assert asked == [1]
     assert errors == []
-    assert home.team_list.currentItem().text() == "Custom (CUS)"
+    assert home.team_list.currentItem().text().splitlines()[0] == "Custom (CUS)"
 
 
 def test_json_import_uses_team_in_file(repo: RosterRepository, tmp_path: Path) -> None:

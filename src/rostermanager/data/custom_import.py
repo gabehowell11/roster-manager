@@ -21,6 +21,7 @@ import difflib
 import json
 import sys
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from importlib import resources
 from pathlib import Path
 from typing import Any, Literal
@@ -28,7 +29,7 @@ from typing import Any, Literal
 from pydantic import ValidationError
 
 from rostermanager.data.repository import RosterRepository
-from rostermanager.models import Player, Roster, Team
+from rostermanager.models import Player, Roster, RosterSource, Team
 
 COLUMNS: tuple[str, ...] = tuple(Player.model_fields)
 REQUIRED_COLUMNS: tuple[str, ...] = tuple(
@@ -223,7 +224,7 @@ def main(argv: Sequence[str] | None = None, repo: RosterRepository | None = None
         print(error, file=sys.stderr)
         return 1
     repo = repo if repo is not None else RosterRepository()
-    repo.save_roster(roster)
+    repo.save_roster(roster, source=RosterSource.CUSTOM, imported_at=datetime.now(UTC))
     print(f"Saved {len(roster.players)} players for {roster.team.name} to {repo.db_path}")
     return 0
 

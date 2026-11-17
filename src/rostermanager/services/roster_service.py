@@ -5,12 +5,13 @@ which wraps the data layer and turns its failures into a few clear error types.
 """
 
 from collections.abc import Callable, Mapping
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from rostermanager.data import RosterRepository
 from rostermanager.data.custom_import import RosterImportError, import_roster
-from rostermanager.models import DepthChart, Roster, Team, Unit
+from rostermanager.models import DepthChart, Roster, RosterSource, SavedTeam, Team, Unit
 from rostermanager.services import depth_editing
 from rostermanager.services.depth_editing import EditError, PlayerKey
 
@@ -73,13 +74,29 @@ class RosterService:
         """Remove a saved team. Returns False if it wasn't saved."""
         return self.repo.delete_roster(abbreviation)
 
-    def import_custom_file(self, path: Path, team: Team | None = None) -> Roster:
-        """Import a .csv or .json roster and save it.
+    def list_saved_teams(self) -> list[SavedTeam]:
+        """Every saved team with where it came from and when, sorted by name."""
+        return self.repo.list_saved_teams()
+
+    def saved_team(self, abbreviation: str) -> SavedTeam | None:
+        """A saved team's summary, or None. Use it to warn before overwriting."""
+        return self.repo.saved_team(abbreviation)
+
+    def read_custom_file(self, path: Path, team: Team | None = None) -> Roster:
+        """Read a .csv or .json roster without saving it.
 
         Raises RosterImportError listing every problem in the file.
         """
-        roster = import_roster(path, team)
-        self.repo.save_roster(roster)
+        return import_roster(path, team)
+
+    def save_custom_roster(self, roster: Roster) -> None:
+        """Save a roster read by read_custom_file, replacing any team with its abbreviation."""
+        self.repo.save_roster(roster, source=RosterSource.CUSTOM, imported_at=datetime.now(UTC))
+
+    def import_custom_file(self, path: Path, team: Team | None = None) -> Roster:
+        """Read and save a custom roster in one step."""
+        roster = self.read_custom_file(path, team)
+        self.save_custom_roster(roster)
         return roster
 
     def download_nfl_team(
@@ -90,21 +107,27 @@ class RosterService:
     ) -> Roster:
         """Download a real team from nflverse and save it. Needs internet.
 
-        Raises TeamDownloadError with a readable message on any failure.
+        Refreshing a team that was downloaded before keeps the user's ratings for
+        players still on the roster. Raises TeamDownloadError on any failure.
         """
         try:
             # Imported here so the app still starts without the optional data extras.
-            from rostermanager.data.nflverse import import_team
+            from rostermanager.data.nflverse import fetch_team
         except ImportError as error:
             raise TeamDownloadError(
                 'NFL downloads need the data extras: python -m pip install -e ".[data]"'
             ) from error
         try:
-            return import_team(abbreviation, self.repo, season=season, source=source)
+            roster = fetch_team(abbreviation, season=season, source=source)
         except Exception as error:  # network, parsing, or validation: all shown to the user
             raise TeamDownloadError(
                 f"could not download {abbreviation.strip().upper()}: {error}"
             ) from error
+        existing = self.saved_team(roster.team.abbreviation)
+        if existing is not None and existing.source is RosterSource.NFLVERSE:
+            roster = carry_over_ratings(self.load_roster(roster.team.abbreviation), roster)
+        self.repo.save_roster(roster, source=RosterSource.NFLVERSE, imported_at=datetime.now(UTC))
+        return roster
 
     # Editing. Each loads the saved roster, applies one change, validates, saves,
     # and returns the updated roster. Failures raise EditError and save nothing.
@@ -139,3 +162,21 @@ class RosterService:
 
     def add_player(self, abbreviation: str, data: Mapping[str, object]) -> Roster:
         return self._edit(abbreviation, lambda r: depth_editing.add_player(r, data))
+
+
+def carry_over_ratings(old: Roster, new: Roster) -> Roster:
+    """new, with ratings copied from old for the same player.
+
+    A player matches by name and unit first (the same person can have separate
+    offense and special teams entries), then by name alone. Ratings already set in
+    new are left alone.
+    """
+    by_name_unit = {(p.name, p.unit): p.rating for p in old.players if p.rating is not None}
+    by_name = {p.name: p.rating for p in old.players if p.rating is not None}
+    players = []
+    for player in new.players:
+        rating = by_name_unit.get((player.name, player.unit), by_name.get(player.name))
+        if player.rating is None and rating is not None:
+            player = player.model_copy(update={"rating": rating})
+        players.append(player)
+    return Roster(team=new.team, players=players)
