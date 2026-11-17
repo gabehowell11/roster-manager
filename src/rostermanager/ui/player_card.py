@@ -1,6 +1,7 @@
 """PlayerCard: one player drawn as a card in team colors. No logos."""
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
 
 from rostermanager.models import Player, Team
@@ -41,8 +42,11 @@ class PlayerCard(QFrame):
     """A card with jersey number, name, position, and rating.
 
     Starters are larger and solid in the team's primary color. Backups are smaller
-    and lighter so they read as sitting behind the starter.
+    and lighter so they read as sitting behind the starter. Clicking a card emits
+    clicked with its Player.
     """
+
+    clicked = Signal(object)
 
     def __init__(
         self, player: Player, team: Team, starter: bool, parent: QWidget | None = None
@@ -70,9 +74,19 @@ class PlayerCard(QFrame):
         layout.addWidget(self.name_label, stretch=1)
         layout.addWidget(self.rating_label)
 
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFixedSize(*(STARTER_SIZE if starter else BACKUP_SIZE))
         self.setToolTip(self._details())
         self._apply_style(team)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(
+            event.position().toPoint()
+        ):
+            self.clicked.emit(self.player)
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
 
     def _details(self) -> str:
         p = self.player

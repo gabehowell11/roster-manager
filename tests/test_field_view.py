@@ -1,8 +1,12 @@
 """Tests for FieldView and the team view's offense/defense toggle, run offscreen."""
 
+from pathlib import Path
+
 import pytest
 
+from rostermanager.data import RosterRepository
 from rostermanager.models import Player, Roster, Team, Unit
+from rostermanager.services import RosterService
 from rostermanager.ui.field_view import MAX_BACKUPS_SHOWN, FieldView
 from rostermanager.ui.player_card import PlayerCard
 from rostermanager.ui.team_view import TeamView
@@ -104,8 +108,8 @@ def shown_unit(view: TeamView) -> Unit:
     return view.unit
 
 
-def test_team_view_toggles_between_offense_and_defense() -> None:
-    view = TeamView()
+def test_team_view_toggles_between_offense_and_defense(tmp_path: Path) -> None:
+    view = TeamView(RosterService(RosterRepository(tmp_path / "r.db")))
     view.set_roster(ROSTER)
     assert view.unit is Unit.OFFENSE
     assert "QB" in view.field.slot_cards

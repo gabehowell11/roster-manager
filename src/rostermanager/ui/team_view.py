@@ -12,8 +12,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from rostermanager.models import Roster, Unit
+from rostermanager.models import Player, Roster, Unit
+from rostermanager.services import RosterService
 from rostermanager.ui.field_view import FieldView
+from rostermanager.ui.player_dialog import PlayerDialog
 from rostermanager.ui.theme import team_title_color
 
 SHOWN_UNITS = (Unit.OFFENSE, Unit.DEFENSE)
@@ -24,8 +26,9 @@ class TeamView(QWidget):
 
     back_requested = Signal()
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, service: RosterService, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self.service = service
         self.roster: Roster | None = None
         self.unit = Unit.OFFENSE
 
@@ -60,6 +63,7 @@ class TeamView(QWidget):
             header.setColumnStretch(column, 1)
 
         self.field = FieldView()
+        self.field.player_clicked.connect(self.open_player)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(self.field)
@@ -76,6 +80,25 @@ class TeamView(QWidget):
         self.title.setText(roster.team.name)
         self.title.setStyleSheet(f"color: {team_title_color(roster.team)};")
         self.show_unit(Unit.OFFENSE)
+
+    def update_roster(self, roster: Roster) -> None:
+        """Show an edited roster, staying on the current unit."""
+        self.roster = roster
+        self.show_unit(self.unit)
+
+    def open_player(self, player: Player) -> None:
+        """Open the editor for a clicked card and redraw if anything was saved."""
+        roster = self.run_player_dialog(player)
+        if roster is not None:
+            self.update_roster(roster)
+
+    def run_player_dialog(self, player: Player) -> Roster | None:
+        """Show the editor. Returns the saved roster, or None if nothing changed."""
+        if self.roster is None:
+            return None
+        dialog = PlayerDialog(self.service, self.roster.team, player, self)
+        dialog.exec()
+        return dialog.roster
 
     def show_unit(self, unit: Unit) -> None:
         """Switch the field between offense and defense."""

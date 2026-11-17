@@ -49,9 +49,9 @@ def test_home_title_is_centered(tmp_path: Path) -> None:
     assert title.alignment() & Qt.AlignmentFlag.AlignHCenter
 
 
-def test_team_title_is_centered_in_team_color() -> None:
+def test_team_title_is_centered_in_team_color(tmp_path: Path) -> None:
     team = Team(abbreviation="XYZ", name="Example City", primary_color="#E31837")
-    view = TeamView()
+    view = TeamView(RosterService(RosterRepository(tmp_path / "r.db")))
     view.set_roster(
         Roster(team=team, players=[Player(name="Q", position="QB", unit="offense", depth_order=1)])
     )
