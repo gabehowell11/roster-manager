@@ -7,9 +7,11 @@ def main() -> None:
 
     from rostermanager.services import RosterService
     from rostermanager.ui.main_window import MainWindow
+    from rostermanager.ui.theme import apply_theme
 
     app = QApplication(sys.argv)
     app.setApplicationName("Roster Manager")
+    apply_theme(app)
     window = MainWindow(RosterService())
     window.show()
     sys.exit(app.exec())

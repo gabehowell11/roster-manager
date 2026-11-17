@@ -40,7 +40,7 @@ def test_selecting_a_team_opens_team_view_and_back_returns(service: RosterServic
     window.home.open_button.click()
 
     assert window.pages.currentWidget() is window.team_view
-    assert window.team_view.title.text() == "Example City (XYZ)"
+    assert window.team_view.title.text() == "Example City"
     assert "Example City" in window.windowTitle()
 
     window.team_view.back_button.click()

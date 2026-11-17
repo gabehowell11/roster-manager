@@ -44,9 +44,11 @@ class HomeScreen(QWidget):
         self.runner = runner if runner is not None else BackgroundRunner()
 
         title = QLabel("Roster Manager")
-        title.setStyleSheet("font-size: 22px; font-weight: bold;")
+        title.setObjectName("Title")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         disclaimer = QLabel("Not affiliated with or endorsed by the NFL.")
-        disclaimer.setStyleSheet("color: gray;")
+        disclaimer.setObjectName("Muted")
+        disclaimer.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Saved teams
         self.team_list = QListWidget()
@@ -56,10 +58,9 @@ class HomeScreen(QWidget):
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.open_button = QPushButton("Open team")
         self.open_button.clicked.connect(self._open_selected)
-        open_row = QHBoxLayout()
-        open_row.addStretch()
-        open_row.addWidget(self.open_button)
+        open_row = _centered(self.open_button)
 
+        self.empty_label.setObjectName("Muted")
         saved = QGroupBox("Saved teams")
         saved_layout = QVBoxLayout(saved)
         saved_layout.addWidget(self.team_list)
@@ -72,22 +73,23 @@ class HomeScreen(QWidget):
         self.download_button = QPushButton("Download")
         self.download_button.clicked.connect(self.start_download)
         download = QGroupBox("Real NFL team (needs internet once)")
-        download_layout = QHBoxLayout(download)
-        download_layout.addWidget(self.team_picker)
-        download_layout.addWidget(self.download_button)
-        download_layout.addStretch()
+        download.setLayout(_centered(self.team_picker, self.download_button))
 
         # Import a custom roster
         self.import_button = QPushButton("Import CSV or JSON...")
         self.import_button.clicked.connect(self.start_import)
         custom = QGroupBox("Custom roster")
-        custom_layout = QHBoxLayout(custom)
-        custom_layout.addWidget(self.import_button)
-        custom_layout.addStretch()
+        custom.setLayout(_centered(self.import_button))
 
         self.status_label = QLabel()
+        self.status_label.setObjectName("Status")
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.team_picker.setMinimumWidth(90)
 
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(40, 24, 40, 16)
+        layout.setSpacing(12)
         layout.addWidget(title)
         layout.addWidget(disclaimer)
         layout.addWidget(saved, stretch=1)
@@ -196,3 +198,13 @@ class HomeScreen(QWidget):
 
     def _open_item(self, item: QListWidgetItem) -> None:
         self.team_selected.emit(item.data(Qt.ItemDataRole.UserRole))
+
+
+def _centered(*widgets: QWidget) -> QHBoxLayout:
+    """A row with the widgets in the middle."""
+    row = QHBoxLayout()
+    row.addStretch()
+    for widget in widgets:
+        row.addWidget(widget)
+    row.addStretch()
+    return row
