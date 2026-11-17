@@ -4,14 +4,16 @@ from PySide6.QtCore import QPoint, QRect, Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPaintEvent, QPen, QResizeEvent
 from PySide6.QtWidgets import QLabel, QWidget
 
-from rostermanager.models import DepthChart, Team, Unit
+from rostermanager.models import DepthChart, Player, Team, Unit
 from rostermanager.services import FieldSpot, layout_depth_chart
 from rostermanager.services.field_layout import (
     DEFENSE_LINE,
     OFFENSE_LINE,
     SPECIAL_TEAMS_LINE,
 )
+from rostermanager.services.formations import Formation, fill_formation
 from rostermanager.ui.player_card import STARTER_SIZE, PlayerCard
+from rostermanager.ui.theme import MUTED_TEXT
 
 MAX_BACKUPS_SHOWN = 3
 BACKUP_OFFSET = QPoint(8, 12)  # each backup peeks out this far from the one in front
@@ -42,29 +44,54 @@ class FieldView(QWidget):
         self.chart: DepthChart | None = None
         self.spots: dict[str, FieldSpot] = {}
         self.slot_cards: dict[str, list[PlayerCard]] = {}  # starter first
+        self.open_cards: dict[str, QLabel] = {}  # formation roles nobody can fill
+        self.formation: Formation | None = None
 
         self.empty_label = QLabel(self)
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.empty_label.setStyleSheet("color: white; font-size: 16px;")
         self.empty_label.hide()
 
-    def set_depth_chart(self, chart: DepthChart, team: Team) -> None:
-        """Replace the cards with this depth chart's players."""
-        for cards in self.slot_cards.values():
-            for card in cards:
-                # Detach now so old cards vanish immediately; Qt frees them later.
-                card.hide()
-                card.setParent(None)
-                card.deleteLater()
-        self.slot_cards = {}
-        self.chart = chart
-        self.spots = layout_depth_chart(chart)
+    def set_depth_chart(
+        self, chart: DepthChart, team: Team, formation: Formation | None = None
+    ) -> None:
+        """Replace the cards with this depth chart's players.
 
-        for label, players in chart.slots.items():
+        With no formation every slot is shown where field_layout puts it. With a
+        formation, each role shows the player filling it, and roles nobody can fill
+        show an open placeholder.
+        """
+        for widget in [
+            *(c for cards in self.slot_cards.values() for c in cards),
+            *self.open_cards.values(),
+        ]:
+            # Detach now so old cards vanish immediately; Qt frees them later.
+            widget.hide()
+            widget.setParent(None)
+            widget.deleteLater()
+        self.slot_cards = {}
+        self.open_cards = {}
+        self.chart = chart
+        self.formation = formation
+
+        groups: list[tuple[str, list[Player]]]
+        if formation is None:
+            self.spots = layout_depth_chart(chart)
+            groups = list(chart.slots.items())
+        else:
+            filled = fill_formation(chart, formation)
+            self.spots = {entry.role.label: entry.role.spot for entry in filled}
+            groups = [(entry.role.label, entry.players) for entry in filled]
+
+        slot_sizes = {label: len(players) for label, players in chart.slots.items()}
+        for label, players in groups:
+            if not players:
+                self.open_cards[label] = _open_card(label, self)
+                continue
             shown = players[: MAX_BACKUPS_SHOWN + 1]
             cards = [PlayerCard(p, team, starter=i == 0, parent=self) for i, p in enumerate(shown)]
             for card in cards:
-                card.slot_size = len(players)
+                card.slot_size = slot_sizes[card.player.position]
                 card.clicked.connect(self.player_clicked.emit)
                 card.action_requested.connect(self.action_requested.emit)
                 card.swap_requested.connect(self.swap_requested.emit)
@@ -94,6 +121,11 @@ class FieldView(QWidget):
         width, height = self.width(), self.height()
         downward = self._backup_direction() > 0
         starter_w, starter_h = STARTER_SIZE
+        for label, placeholder in self.open_cards.items():
+            spot = self.spots[label]
+            left = _clamp(round(spot.x * width) - starter_w // 2, 0, width - starter_w)
+            top = _clamp(round(spot.y * height) - starter_h // 2, 0, height - starter_h)
+            placeholder.move(left, top)
         for label, cards in self.slot_cards.items():
             spot = self.spots[label]
             # Clamp the starter so the whole fanned stack stays inside the field.
@@ -152,3 +184,17 @@ class FieldView(QWidget):
 def _clamp(value: int, low: int, high: int) -> int:
     """value limited to low..high; low wins if the field is too small for both."""
     return max(low, min(value, high))
+
+
+def _open_card(label: str, parent: QWidget) -> QLabel:
+    """A dashed placeholder for a formation role with no player to fill it."""
+    card = QLabel(f"{label}\nopen", parent)
+    card.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    card.setFixedSize(*STARTER_SIZE)
+    card.setToolTip(f"No player on the roster can fill {label} in this formation.")
+    card.setStyleSheet(
+        f"border: 2px dashed {MUTED_TEXT}; border-radius: 8px;"
+        f" color: {MUTED_TEXT}; background: rgba(0, 0, 0, 40); font-weight: 600;"
+    )
+    card.show()
+    return card

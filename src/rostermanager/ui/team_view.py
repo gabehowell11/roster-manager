@@ -2,11 +2,10 @@
 
 from collections.abc import Callable
 
-from collections.abc import Callable
-
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QButtonGroup,
+    QComboBox,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -19,6 +18,7 @@ from PySide6.QtWidgets import (
 
 from rostermanager.models import Player, Roster, Unit
 from rostermanager.services import EditError, PlayerKey, RosterService
+from rostermanager.services.formations import DEPTH_CHART, formation_names, get_formation
 from rostermanager.ui.field_view import FieldView
 from rostermanager.ui.player_dialog import PlayerDialog
 from rostermanager.ui.theme import team_title_color
@@ -36,6 +36,8 @@ class TeamView(QWidget):
         self.service = service
         self.roster: Roster | None = None
         self.unit = Unit.OFFENSE
+        # Formation picked per unit, kept while the app is open.
+        self.formation_choice: dict[Unit, str] = {unit: DEPTH_CHART for unit in Unit}
 
         self.back_button = QPushButton("< Teams")
         self.back_button.clicked.connect(self.back_requested.emit)
@@ -58,8 +60,12 @@ class TeamView(QWidget):
             self.unit_buttons[unit] = button
             toggles.addWidget(button)
         self.unit_buttons[self.unit].setChecked(True)
-
-        # Three equal columns keep the title centered on the window, not between buttons.
+        self.formation_picker = QComboBox()
+        self.formation_picker.setMinimumWidth(170)
+        self.formation_picker.setToolTip("Formation")
+        self.formation_picker.currentTextChanged.connect(self.choose_formation)
+        toggles.addSpacing(18)
+        toggles.addWidget(self.formation_picker)
         toggles.addStretch()
 
         # Back button left, title on the true center (equal side columns), toggles below.
@@ -148,5 +154,24 @@ class TeamView(QWidget):
         """Switch the field to another unit."""
         self.unit = unit
         self.unit_buttons[unit].setChecked(True)
+        names = formation_names(unit)
+        self.formation_picker.blockSignals(True)
+        self.formation_picker.clear()
+        self.formation_picker.addItems(names)
+        self.formation_picker.setCurrentText(self.formation_choice[unit])
+        self.formation_picker.blockSignals(False)
+        self.formation_picker.setVisible(len(names) > 1)
+        self._draw()
+
+    def choose_formation(self, name: str) -> None:
+        """Show the current unit in another formation (or the plain depth chart)."""
+        if not name:
+            return
+        self.formation_choice[self.unit] = name
+        self._draw()
+
+    def _draw(self) -> None:
         if self.roster is not None:
-            self.field.set_depth_chart(self.roster.depth_chart(unit), self.roster.team)
+            formation = get_formation(self.unit, self.formation_choice[self.unit])
+            chart = self.roster.depth_chart(self.unit)
+            self.field.set_depth_chart(chart, self.roster.team, formation)

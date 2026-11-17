@@ -191,7 +191,7 @@ class PlayerCard(QFrame):
     def _details(self) -> str:
         p = self.player
         weight = f"{p.weight} lb" if p.weight is not None else "-"
-        role = "Starter" if self.is_starter else f"Backup (depth {p.depth_order})"
+        role = "Starter" if p.depth_order == 1 else f"Backup (depth {p.depth_order})"
         return (
             f"{p.name}\n{p.position}, {role}\n"
             f"Height {format_height(p.height)}, weight {weight}\n"
