@@ -1,11 +1,14 @@
 """The team view: one team's roster on a football field, offense or defense."""
 
+from collections.abc import Callable
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QButtonGroup,
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QVBoxLayout,
@@ -13,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from rostermanager.models import Player, Roster, Unit
-from rostermanager.services import RosterService
+from rostermanager.services import EditError, PlayerKey, RosterService
 from rostermanager.ui.field_view import FieldView
 from rostermanager.ui.player_dialog import PlayerDialog
 from rostermanager.ui.theme import team_title_color
@@ -64,6 +67,8 @@ class TeamView(QWidget):
 
         self.field = FieldView()
         self.field.player_clicked.connect(self.open_player)
+        self.field.action_requested.connect(self.run_action)
+        self.field.swap_requested.connect(self.swap)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(self.field)
@@ -99,6 +104,37 @@ class TeamView(QWidget):
         dialog = PlayerDialog(self.service, self.roster.team, player, self)
         dialog.exec()
         return dialog.roster
+
+    def run_action(self, player: Player, action: str) -> None:
+        """Handle a right-click menu choice on a card."""
+        if action == "edit":
+            self.open_player(player)
+            return
+        edits = {
+            "starter": self.service.make_starter,
+            "up": self.service.promote,
+            "down": self.service.demote,
+        }
+        edit = edits[action]
+        self.apply(lambda abbreviation: edit(abbreviation, PlayerKey.of(player)))
+
+    def swap(self, dragged: PlayerKey, target: PlayerKey) -> None:
+        """A card was dropped on another: they trade places."""
+        self.apply(lambda abbreviation: self.service.swap_players(abbreviation, dragged, target))
+
+    def apply(self, edit: Callable[[str], Roster]) -> None:
+        """Run one saved edit and redraw, or explain why it could not be done."""
+        if self.roster is None:
+            return
+        try:
+            roster = edit(self.roster.team.abbreviation)
+        except EditError as error:
+            self.show_error(str(error))
+            return
+        self.update_roster(roster)
+
+    def show_error(self, text: str) -> None:
+        QMessageBox.warning(self, "Could not change the depth chart", text)
 
     def show_unit(self, unit: Unit) -> None:
         """Switch the field between offense and defense."""
