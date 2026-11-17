@@ -1,7 +1,9 @@
 """Guards for the layering rules in CLAUDE.md."""
 
+import re
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -28,3 +30,11 @@ def test_entry_point_exposes_main() -> None:
     from rostermanager.__main__ import main
 
     assert callable(main)
+
+
+def test_ui_never_imports_the_data_layer() -> None:
+    # CLAUDE.md: the UI calls services and never touches SQLite or importers directly.
+    ui_dir = Path(__file__).parent.parent / "src" / "rostermanager" / "ui"
+    banned = re.compile(r"^\s*(from|import)\s+(rostermanager\.data|sqlite3)\b", re.MULTILINE)
+    offenders = [p.name for p in ui_dir.glob("*.py") if banned.search(p.read_text("utf-8"))]
+    assert offenders == []
