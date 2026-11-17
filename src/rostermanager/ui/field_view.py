@@ -13,9 +13,10 @@ MAX_BACKUPS_SHOWN = 3
 BACKUP_OFFSET = QPoint(8, 12)  # each backup peeks out this far from the one in front
 MIN_FIELD_SIZE = (1000, 620)
 
-_GRASS = QColor("#2E7D32")
-_GRASS_STRIPE = QColor("#388E3C")
-_LINE = QColor(255, 255, 255, 170)
+# Muted greens so the field sits calmly on the dark blue theme.
+_GRASS = QColor("#2D5E3A")
+_GRASS_STRIPE = QColor("#316640")
+_LINE = QColor(255, 255, 255, 110)
 
 
 class FieldView(QWidget):

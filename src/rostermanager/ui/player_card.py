@@ -90,8 +90,9 @@ class PlayerCard(QFrame):
             self.foreground = text_color(background, team.secondary_color)
             name_size, small_size = 13, 10
         else:
-            background, border, width = "#F2F2F2", team.primary_color, 1
-            self.foreground = "#222222"
+            # Dark slate to match the app theme; the team color stays on the border.
+            background, border, width = "#2B3A4F", team.primary_color, 1
+            self.foreground = "#D5DCE6"
             name_size, small_size = 11, 9
         self.background = background
         self.setStyleSheet(
