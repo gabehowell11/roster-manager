@@ -32,52 +32,52 @@ class FieldSpot:
     y: float
 
 
-_OFFENSE_LINE = 0.30
-_DEFENSE_LINE = 0.72
+OFFENSE_LINE = 0.30
+DEFENSE_LINE = 0.72
 OVERFLOW_Y = 0.92
 
 _OFFENSE_NAMED: dict[str, FieldSpot] = {
-    "LT": FieldSpot(0.32, _OFFENSE_LINE),
-    "LG": FieldSpot(0.41, _OFFENSE_LINE),
-    "C": FieldSpot(0.50, _OFFENSE_LINE),
-    "RG": FieldSpot(0.59, _OFFENSE_LINE),
-    "RT": FieldSpot(0.68, _OFFENSE_LINE),
+    "LT": FieldSpot(0.28, OFFENSE_LINE),
+    "LG": FieldSpot(0.39, OFFENSE_LINE),
+    "C": FieldSpot(0.50, OFFENSE_LINE),
+    "RG": FieldSpot(0.61, OFFENSE_LINE),
+    "RT": FieldSpot(0.72, OFFENSE_LINE),
     "QB": FieldSpot(0.50, 0.50),
     "FB": FieldSpot(0.50, 0.62),
     "RB": FieldSpot(0.50, 0.75),
     "HB": FieldSpot(0.50, 0.75),
-    "LWR": FieldSpot(0.06, _OFFENSE_LINE),
-    "RWR": FieldSpot(0.94, _OFFENSE_LINE),
-    "SWR": FieldSpot(0.84, 0.42),
-    "SLOT": FieldSpot(0.84, 0.42),
+    "LWR": FieldSpot(0.05, OFFENSE_LINE),
+    "RWR": FieldSpot(0.95, OFFENSE_LINE),
+    "SWR": FieldSpot(0.86, 0.52),
+    "SLOT": FieldSpot(0.86, 0.52),
 }
 
 _OFFENSE_GROUPS: dict[str, tuple[FieldSpot, ...]] = {
     "WR": (
-        FieldSpot(0.06, _OFFENSE_LINE),
-        FieldSpot(0.94, _OFFENSE_LINE),
-        FieldSpot(0.84, 0.42),
-        FieldSpot(0.16, 0.42),
+        FieldSpot(0.05, OFFENSE_LINE),
+        FieldSpot(0.95, OFFENSE_LINE),
+        FieldSpot(0.86, 0.52),
+        FieldSpot(0.14, 0.52),
     ),
-    "TE": (FieldSpot(0.78, 0.33), FieldSpot(0.22, 0.33)),
+    "TE": (FieldSpot(0.83, 0.33), FieldSpot(0.17, 0.33)),
     "RB": (FieldSpot(0.50, 0.75), FieldSpot(0.64, 0.75)),
     "HB": (FieldSpot(0.50, 0.75), FieldSpot(0.64, 0.75)),
     "QB": (FieldSpot(0.50, 0.50),),
     "FB": (FieldSpot(0.50, 0.62),),
-    "C": (FieldSpot(0.50, _OFFENSE_LINE),),
-    "T": (FieldSpot(0.32, _OFFENSE_LINE), FieldSpot(0.68, _OFFENSE_LINE)),
-    "OT": (FieldSpot(0.32, _OFFENSE_LINE), FieldSpot(0.68, _OFFENSE_LINE)),
-    "G": (FieldSpot(0.41, _OFFENSE_LINE), FieldSpot(0.59, _OFFENSE_LINE)),
-    "OG": (FieldSpot(0.41, _OFFENSE_LINE), FieldSpot(0.59, _OFFENSE_LINE)),
-    "OL": tuple(FieldSpot(x, _OFFENSE_LINE) for x in (0.32, 0.41, 0.50, 0.59, 0.68)),
+    "C": (FieldSpot(0.50, OFFENSE_LINE),),
+    "T": (FieldSpot(0.28, OFFENSE_LINE), FieldSpot(0.72, OFFENSE_LINE)),
+    "OT": (FieldSpot(0.28, OFFENSE_LINE), FieldSpot(0.72, OFFENSE_LINE)),
+    "G": (FieldSpot(0.39, OFFENSE_LINE), FieldSpot(0.61, OFFENSE_LINE)),
+    "OG": (FieldSpot(0.39, OFFENSE_LINE), FieldSpot(0.61, OFFENSE_LINE)),
+    "OL": tuple(FieldSpot(x, OFFENSE_LINE) for x in (0.28, 0.39, 0.50, 0.61, 0.72)),
 }
 
 _DEFENSE_NAMED: dict[str, FieldSpot] = {
-    "LDE": FieldSpot(0.30, _DEFENSE_LINE),
-    "LDT": FieldSpot(0.43, _DEFENSE_LINE),
-    "NT": FieldSpot(0.50, _DEFENSE_LINE),
-    "RDT": FieldSpot(0.57, _DEFENSE_LINE),
-    "RDE": FieldSpot(0.70, _DEFENSE_LINE),
+    "LDE": FieldSpot(0.30, DEFENSE_LINE),
+    "LDT": FieldSpot(0.43, DEFENSE_LINE),
+    "NT": FieldSpot(0.50, DEFENSE_LINE),
+    "RDT": FieldSpot(0.57, DEFENSE_LINE),
+    "RDE": FieldSpot(0.70, DEFENSE_LINE),
     "LOLB": FieldSpot(0.18, 0.62),
     "ROLB": FieldSpot(0.82, 0.62),
     "WLB": FieldSpot(0.30, 0.48),
@@ -87,9 +87,9 @@ _DEFENSE_NAMED: dict[str, FieldSpot] = {
     "RILB": FieldSpot(0.60, 0.48),
     "LCB": FieldSpot(0.06, 0.66),
     "RCB": FieldSpot(0.94, 0.66),
-    "NB": FieldSpot(0.82, 0.52),
-    "NCB": FieldSpot(0.82, 0.52),
-    "SCB": FieldSpot(0.82, 0.52),
+    "NB": FieldSpot(0.84, 0.40),
+    "NCB": FieldSpot(0.84, 0.40),
+    "SCB": FieldSpot(0.84, 0.40),
     "FS": FieldSpot(0.38, 0.18),
     "SS": FieldSpot(0.62, 0.26),
 }
