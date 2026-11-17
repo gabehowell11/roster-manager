@@ -4,6 +4,7 @@ The UI never touches SQLite or the importers directly. It calls RosterService,
 which wraps the data layer and turns its failures into a few clear error types.
 """
 
+import shutil
 from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 from pathlib import Path
@@ -11,6 +12,7 @@ from typing import TYPE_CHECKING
 
 from rostermanager.data import RosterRepository
 from rostermanager.data.custom_import import RosterImportError, import_roster
+from rostermanager.data.custom_import import template_path as _data_template_path
 from rostermanager.models import DepthChart, Roster, RosterSource, SavedTeam, Team, Unit
 from rostermanager.services import depth_editing
 from rostermanager.services.depth_editing import EditError, PlayerKey
@@ -34,7 +36,21 @@ __all__ = [
     "RosterNotFoundError",
     "RosterService",
     "TeamDownloadError",
+    "copy_template",
+    "template_path",
 ]
+
+
+def template_path(kind: str) -> Path:
+    """The blank roster template shipped with the app ("csv" or "json")."""
+    if kind not in ("csv", "json"):
+        raise ValueError(f"no {kind!r} template; use csv or json")
+    return _data_template_path("csv" if kind == "csv" else "json")
+
+
+def copy_template(kind: str, destination: Path) -> Path:
+    """Copy a roster template where the user can fill it in. Returns the new file."""
+    return Path(shutil.copyfile(template_path(kind), destination))
 
 
 class RosterNotFoundError(LookupError):

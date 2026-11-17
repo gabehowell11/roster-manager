@@ -8,6 +8,8 @@ from rostermanager.services.roster_service import (
     RosterNotFoundError,
     RosterService,
     TeamDownloadError,
+    copy_template,
+    template_path,
 )
 
 __all__ = [
@@ -20,6 +22,8 @@ __all__ = [
     "RosterNotFoundError",
     "RosterService",
     "TeamDownloadError",
+    "copy_template",
     "layout_depth_chart",
     "layout_slots",
+    "template_path",
 ]

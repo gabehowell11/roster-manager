@@ -94,6 +94,9 @@ QListWidget, QLineEdit, QComboBox {{
     border-radius: 8px;
     padding: 6px;
 }}
+QListWidget {{
+    outline: 0;  /* no dotted focus box inside the selected row */
+}}
 QListWidget::item {{
     padding: 8px;
     border-radius: 6px;

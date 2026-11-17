@@ -3,26 +3,45 @@
 [![CI](https://github.com/gabehowell11/roster-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/gabehowell11/roster-manager/actions/workflows/ci.yml)
 
 A Windows desktop app for managing football rosters. Pick a real NFL team or import your own
-roster, then see the offense or defense laid out on a football field, with each player shown as
-a card and starters in front of their backups.
+roster, then see the offense, defense, or special teams laid out on a football field, with each
+player shown as a card and starters in front of their backups.
 
-> **Status:** early development. The project setup is done; the roster features below are planned
-> and not built yet. See the [issues](https://github.com/gabehowell11/roster-manager/issues) for
-> the roadmap.
+> **Status:** feature complete for version 1 (phases 1-4). See the
+> [issues](https://github.com/gabehowell11/roster-manager/issues) for what's next.
 
-## Planned features
+![Offense on the field](docs/screenshots/offense.png)
 
-- Browse any NFL team's current roster, downloaded once and stored locally so the app works offline
-- Import a custom roster from CSV or JSON
-- Field view for offense and defense, with starters and backups by position
-- Reorder the depth chart (swap starters and backups)
-- Give players your own 0-99 rating
+## Features
+
+- Download any NFL team's current depth chart once; it is stored locally so the app works offline
+- Refresh a team later to pick up roster moves, keeping your ratings
+- Import a custom roster from CSV or JSON, starting from a template the app saves for you
+- Field view for offense, defense, and special teams, with backups stacked behind each starter
+- Formations: Shotgun, Singleback, I-Form, Pistol, Empty, and Goal Line on offense; 4-3, 3-4,
+  Nickel, Dime, 3-3-5, and Goal Line on defense
+- Click a card to edit any player detail or give them your own 0-99 rating
+- Reorder the depth chart by dragging cards, right-clicking, or from the player editor
+
+The [user guide](docs/user-guide.md) walks through all of it.
 
 ## Screenshots
 
-_Coming soon._
+| Home | Player editor |
+| --- | --- |
+| ![Home screen](docs/screenshots/home.png) | ![Player editor](docs/screenshots/player_editor.png) |
 
-## Requirements
+| Shotgun formation | Nickel defense |
+| --- | --- |
+| ![Shotgun](docs/screenshots/shotgun.png) | ![Nickel](docs/screenshots/nickel.png) |
+
+## Download
+
+Each successful build on GitHub Actions uploads a **RosterManager-windows** artifact. Open the
+latest [CI run](https://github.com/gabehowell11/roster-manager/actions/workflows/ci.yml), download
+the artifact, unzip it anywhere, and run `RosterManager.exe`. Python is not needed. Windows may
+show a SmartScreen warning because the app is not code-signed; choose **More info > Run anyway**.
+
+## Requirements (for development)
 
 - Windows 10 or 11
 - Python 3.12
@@ -49,7 +68,9 @@ If PowerShell refuses to run `Activate.ps1`, allow local scripts for your user o
 python -m rostermanager
 ```
 
-## Importing rosters
+## Importing rosters from the command line
+
+The app's home screen does all of this; these commands are handy for scripting.
 
 Download a real team's roster once (needs internet; afterwards the app works offline):
 
@@ -83,7 +104,15 @@ If anything in the file is wrong, every problem is listed with its row number.
 | Type check | `python -m mypy`                       |
 | All hooks  | `python -m pre_commit run --all-files` |
 
-Every pull request runs lint, type checks, and tests on Windows through GitHub Actions.
+| Build exe  | `python packaging/build.py`            |
+| Screenshots | `python docs/make_screenshots.py`     |
+
+Every pull request runs lint, type checks, and tests on Windows through GitHub Actions, then
+builds the app folder, checks `RosterManager.exe --self-test` passes, and uploads it.
+
+`python packaging/build.py` writes `dist/RosterManager/`. That whole folder is the app; zip it to
+share. Check a build with `dist\RosterManager\RosterManager.exe --self-test` (exit code 0 means
+everything is bundled).
 
 ## Disclaimer
 
