@@ -29,6 +29,8 @@ class FieldView(QWidget):
     """
 
     player_clicked = Signal(object)
+    action_requested = Signal(object, str)  # (Player, "edit" | "starter" | "up" | "down")
+    swap_requested = Signal(object, object)  # (dragged PlayerKey, target PlayerKey)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -58,7 +60,10 @@ class FieldView(QWidget):
             shown = players[: MAX_BACKUPS_SHOWN + 1]
             cards = [PlayerCard(p, team, starter=i == 0, parent=self) for i, p in enumerate(shown)]
             for card in cards:
+                card.slot_size = len(players)
                 card.clicked.connect(self.player_clicked.emit)
+                card.action_requested.connect(self.action_requested.emit)
+                card.swap_requested.connect(self.swap_requested.emit)
             # Later-raised widgets draw on top: deepest backup first, starter last.
             for card in reversed(cards):
                 card.raise_()

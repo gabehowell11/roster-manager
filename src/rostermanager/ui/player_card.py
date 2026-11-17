@@ -1,10 +1,34 @@
 """PlayerCard: one player drawn as a card in team colors. No logos."""
 
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QMouseEvent
-from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
+from PySide6.QtCore import QMimeData, QPoint, Qt, Signal
+from PySide6.QtGui import QContextMenuEvent, QDrag, QDragEnterEvent, QDropEvent, QMouseEvent
+from PySide6.QtWidgets import QApplication, QFrame, QLabel, QMenu, QVBoxLayout, QWidget
 
-from rostermanager.models import Player, Team
+from rostermanager.models import Player, Team, Unit
+from rostermanager.services import PlayerKey
+
+PLAYER_MIME = "application/x-rostermanager-player"
+
+# Right-click menu: (action name, label). TeamView handles each action name.
+MENU_ACTIONS = (
+    ("edit", "Edit details..."),
+    ("starter", "Make starter"),
+    ("up", "Move up"),
+    ("down", "Move down"),
+)
+
+
+def encode_key(key: PlayerKey) -> bytes:
+    return f"{key.unit.value}|{key.position}|{key.depth_order}".encode()
+
+
+def decode_key(data: bytes) -> PlayerKey | None:
+    try:
+        unit, position, depth = data.decode().split("|")
+        return PlayerKey(Unit(unit), position, int(depth))
+    except ValueError:
+        return None
+
 
 STARTER_SIZE = (100, 80)
 BACKUP_SIZE = (92, 60)
@@ -42,18 +66,27 @@ class PlayerCard(QFrame):
     """A card with jersey number, name, position, and rating.
 
     Starters are larger and solid in the team's primary color. Backups are smaller
-    and lighter so they read as sitting behind the starter. Clicking a card emits
-    clicked with its Player.
+    and lighter so they read as sitting behind the starter.
+
+    Clicking emits clicked(Player). Right-click offers depth actions and emits
+    action_requested(Player, name). Dragging a card onto another emits
+    swap_requested(dragged PlayerKey, target PlayerKey) from the target card.
     """
 
     clicked = Signal(object)
+    action_requested = Signal(object, str)
+    swap_requested = Signal(object, object)
 
     def __init__(
         self, player: Player, team: Team, starter: bool, parent: QWidget | None = None
     ) -> None:
         super().__init__(parent)
         self.player = player
+        self.key = PlayerKey.of(player)
         self.is_starter = starter
+        self.slot_size = player.depth_order  # FieldView sets the real size of the slot
+        self._press_pos: QPoint | None = None
+        self.setAcceptDrops(True)
         self.setObjectName("PlayerCard")
 
         jersey = f"#{player.jersey_number}" if player.jersey_number is not None else "#--"
@@ -79,14 +112,81 @@ class PlayerCard(QFrame):
         self.setToolTip(self._details())
         self._apply_style(team)
 
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._press_pos = event.position().toPoint()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        if self._press_pos is not None and (
+            (event.position().toPoint() - self._press_pos).manhattanLength()
+            >= QApplication.startDragDistance()
+        ):
+            self._press_pos = None  # a drag, not a click
+            self.start_drag()
+            return
+        super().mouseMoveEvent(event)
+
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(
-            event.position().toPoint()
+        pressed, self._press_pos = self._press_pos, None
+        if (
+            pressed is not None
+            and event.button() == Qt.MouseButton.LeftButton
+            and self.rect().contains(event.position().toPoint())
         ):
             self.clicked.emit(self.player)
             event.accept()
             return
         super().mouseReleaseEvent(event)
+
+    def start_drag(self) -> None:
+        mime = QMimeData()
+        mime.setData(PLAYER_MIME, encode_key(self.key))
+        drag = QDrag(self)
+        drag.setMimeData(mime)
+        drag.setPixmap(self.grab())
+        drag.setHotSpot(QPoint(self.width() // 2, self.height() // 2))
+        drag.exec(Qt.DropAction.MoveAction)
+
+    def accepts(self, mime: QMimeData) -> PlayerKey | None:
+        """The dragged player's key if it can be dropped here (same unit, not itself)."""
+        if not mime.hasFormat(PLAYER_MIME):
+            return None
+        key = decode_key(bytes(mime.data(PLAYER_MIME).data()))
+        if key is None or key == self.key or key.unit is not self.key.unit:
+            return None
+        return key
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+        if self.accepts(event.mimeData()) is not None:
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        key = self.accepts(event.mimeData())
+        if key is None:
+            event.ignore()
+            return
+        event.acceptProposedAction()
+        self.swap_requested.emit(key, self.key)
+
+    def menu_actions(self) -> list[tuple[str, str, bool]]:
+        """(name, label, enabled) for the right-click menu."""
+        first = self.player.depth_order == 1
+        last = self.player.depth_order >= self.slot_size
+        enabled = {"edit": True, "starter": not first, "up": not first, "down": not last}
+        return [(name, label, enabled[name]) for name, label in MENU_ACTIONS]
+
+    def contextMenuEvent(self, event: QContextMenuEvent) -> None:
+        menu = QMenu(self)
+        for name, label, enabled in self.menu_actions():
+            action = menu.addAction(label)
+            action.setEnabled(enabled)
+            action.setData(name)
+        chosen = menu.exec(event.globalPos())
+        if chosen is not None:
+            self.action_requested.emit(self.player, chosen.data())
 
     def _details(self) -> str:
         p = self.player

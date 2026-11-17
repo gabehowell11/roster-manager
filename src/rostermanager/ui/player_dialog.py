@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 
 from rostermanager.models import Player, Roster, Team, Unit
 from rostermanager.services import EditError, PlayerKey, RosterService
+from rostermanager.services.depth_editing import find_player
 from rostermanager.ui.theme import team_title_color
 
 NONE = -1  # spin box value meaning "not set"; shown as a dash
@@ -117,7 +118,25 @@ class PlayerDialog(QDialog):
         buttons.addWidget(self.cancel_button)
         buttons.addWidget(self.save_button)
 
-        self.extra = QVBoxLayout()  # room for more controls (depth buttons)
+        # Depth buttons save right away, so the field updates even if the dialog is cancelled.
+        self.starter_button = QPushButton("Make starter")
+        self.up_button = QPushButton("Move up")
+        self.down_button = QPushButton("Move down")
+        self.starter_button.clicked.connect(lambda: self.change_depth("starter"))
+        self.up_button.clicked.connect(lambda: self.change_depth("up"))
+        self.down_button.clicked.connect(lambda: self.change_depth("down"))
+        depth_row = QHBoxLayout()
+        depth_row.addStretch()
+        for button in (self.starter_button, self.up_button, self.down_button):
+            depth_row.addWidget(button)
+        depth_row.addStretch()
+        depth_note = QLabel("Depth chart changes save right away")
+        depth_note.setObjectName("Muted")
+        depth_note.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.extra = QVBoxLayout()
+        self.extra.addLayout(depth_row)
+        self.extra.addWidget(depth_note)
+        self._update_depth_buttons()
 
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
@@ -157,6 +176,36 @@ class PlayerDialog(QDialog):
             self.show_error(str(error))
             return
         self.accept()
+
+    def change_depth(self, action: str) -> None:
+        """Make starter / move up / move down, saved immediately."""
+        edits = {
+            "starter": self.service.make_starter,
+            "up": self.service.promote,
+            "down": self.service.demote,
+        }
+        try:
+            self.roster = edits[action](self.team.abbreviation, self.key)
+        except EditError as error:
+            self.show_error(str(error))
+            return
+        depth = self.key.depth_order
+        new_depth = {"starter": 1, "up": depth - 1, "down": depth + 1}[action]
+        self.key = PlayerKey(self.key.unit, self.key.position, new_depth)
+        self.player = find_player(self.roster, self.key)
+        self.depth_label.setText(depth_text(self.player))
+        self.error_label.hide()
+        self._update_depth_buttons()
+
+    def _slot_size(self) -> int:
+        roster = self.roster or self.service.load_roster(self.team.abbreviation)
+        return sum(1 for p in roster.players if (p.unit, p.position) == self.key.slot())
+
+    def _update_depth_buttons(self) -> None:
+        first = self.key.depth_order == 1
+        self.starter_button.setEnabled(not first)
+        self.up_button.setEnabled(not first)
+        self.down_button.setEnabled(self.key.depth_order < self._slot_size())
 
     def delete_player(self) -> None:
         if not self.confirm(f"Delete {self.player.name} from the roster? This cannot be undone."):
