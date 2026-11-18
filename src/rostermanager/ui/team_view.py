@@ -21,8 +21,8 @@ from rostermanager.models import Player, Roster, Unit
 from rostermanager.services import EditError, PlayerKey, RosterService
 from rostermanager.services.formations import DEPTH_CHART, formation_names, get_formation
 from rostermanager.ui.field_view import FieldView
-from rostermanager.ui.overlay import exec_over
-from rostermanager.ui.player_dialog import PlayerDialog
+from rostermanager.ui.overlay import confirm_over, exec_over
+from rostermanager.ui.player_dialog import AddPlayerDialog, PlayerDialog, delete_question
 from rostermanager.ui.roster_panel import RosterPanel, panel_width
 from rostermanager.ui.theme import team_title_color
 
@@ -71,9 +71,13 @@ class TeamView(QWidget):
         self.roster_button.setCheckable(True)
         self.roster_button.setToolTip("Show every player as a list")
         self.roster_button.toggled.connect(self.show_roster_panel)
+        self.add_button = QPushButton("+ Add player")
+        self.add_button.setToolTip("Add a new player to this team")
+        self.add_button.clicked.connect(self.add_player)
         toggles.addSpacing(18)
         toggles.addWidget(self.formation_picker)
         toggles.addWidget(self.roster_button)
+        toggles.addWidget(self.add_button)
         toggles.addStretch()
 
         # Back button left, title on the true center (equal side columns), toggles below.
@@ -106,6 +110,7 @@ class TeamView(QWidget):
         self.roster_panel = RosterPanel(self)
         self.roster_panel.close_requested.connect(lambda: self.roster_button.setChecked(False))
         self.roster_panel.player_clicked.connect(self.open_player)
+        self.roster_panel.action_requested.connect(self.run_action)
         self.roster_panel.hide()
         close = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
         close.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
@@ -159,10 +164,39 @@ class TeamView(QWidget):
         exec_over(dialog, self.window())
         return dialog.roster
 
+    def add_player(self) -> None:
+        """Open the blank editor and redraw if a player was added."""
+        roster = self.run_add_dialog()
+        if roster is not None:
+            self.update_roster(roster)
+
+    def run_add_dialog(self) -> Roster | None:
+        """Show the add-player editor. Returns the saved roster, or None if cancelled."""
+        if self.roster is None:
+            return None
+        dialog = AddPlayerDialog(self.service, self.roster.team, self.unit)
+        exec_over(dialog, self.window())
+        return dialog.roster
+
+    def delete_player(self, player: Player) -> None:
+        """Ask first, then take the player off the roster."""
+        if not self.confirm(delete_question(player)):
+            return
+        self.apply(
+            lambda abbreviation: self.service.remove_player(abbreviation, PlayerKey.of(player))
+        )
+
+    def confirm(self, text: str) -> bool:
+        """Ask a yes/no question in the app. Separate so tests can answer it."""
+        return confirm_over(self.window(), "Delete player?", text, yes_text="Delete")
+
     def run_action(self, player: Player, action: str) -> None:
-        """Handle a right-click menu choice on a card."""
+        """Handle a right-click menu choice on a card or roster row."""
         if action == "edit":
             self.open_player(player)
+            return
+        if action == "delete":
+            self.delete_player(player)
             return
         edits = {
             "starter": self.service.make_starter,
@@ -188,7 +222,7 @@ class TeamView(QWidget):
         self.update_roster(roster)
 
     def show_error(self, text: str) -> None:
-        QMessageBox.warning(self, "Could not change the depth chart", text)
+        QMessageBox.warning(self, "Could not change the roster", text)
 
     def show_unit(self, unit: Unit) -> None:
         """Switch the field to another unit."""

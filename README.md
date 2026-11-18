@@ -21,6 +21,7 @@ player shown as a card and starters in front of their backups.
   Nickel, Dime, 3-3-5, and Goal Line on defense
 - Click a card to edit any player detail or give them your own 0-99 rating
 - **View roster** lists every player by position group, starters first
+- Add new players or delete them from the field, the roster list, or the editor
 - Reorder the depth chart by dragging cards, right-clicking, or from the player editor
 
 The [user guide](docs/user-guide.md) walks through all of it.

@@ -152,3 +152,28 @@ def test_service_edits_save_and_failures_save_nothing(tmp_path: Path) -> None:
     service.demote("XYZ", QB1)
     service.move_player("XYZ", QB1, 2)
     assert len(service.load_roster("XYZ").players) == 6
+
+
+def test_add_player_as_starter_moves_everyone_down() -> None:
+    result = edit.add_player(
+        roster(), {"name": "New Guy", "position": "QB", "unit": "offense"}, starter=True
+    )
+    qbs = names(result, Unit.OFFENSE, "QB")
+    assert qbs[0] == "New Guy"
+    assert len(qbs) == 4
+    assert [p.depth_order for p in edit.slot_players(result, Unit.OFFENSE, "QB")] == [1, 2, 3, 4]
+
+
+def test_add_player_to_a_new_position_is_its_starter() -> None:
+    result = edit.add_player(
+        roster(), {"name": "Kicker", "position": "K", "unit": "special_teams"}, starter=True
+    )
+    assert edit.find_player(result, PlayerKey(Unit.SPECIAL_TEAMS, "K", 1)).name == "Kicker"
+
+
+def test_service_add_player_as_starter_saves(tmp_path: Path) -> None:
+    service = RosterService(RosterRepository(tmp_path / "r.db"))
+    service.repo.save_roster(roster())
+    service.add_player("XYZ", {"name": "New", "position": "QB", "unit": "offense"}, starter=True)
+    saved = service.load_roster("XYZ")
+    assert edit.find_player(saved, PlayerKey(Unit.OFFENSE, "QB", 1)).name == "New"

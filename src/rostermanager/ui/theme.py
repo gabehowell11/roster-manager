@@ -162,6 +162,15 @@ QPushButton:pressed, QPushButton:checked {{
 QPushButton:checked:hover {{
     background-color: {ACCENT_HOVER};
 }}
+QPushButton#Danger {{
+    color: #FF9A8F;
+    border-color: #7A3B3B;
+}}
+QPushButton#Danger:hover {{
+    background-color: #5A2A2A;
+    border-color: #C0504D;
+    color: #FFFFFF;
+}}
 QPushButton:disabled {{
     color: {MUTED_TEXT};
     border-color: {SURFACE};

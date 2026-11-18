@@ -22,6 +22,7 @@ MENU_ACTIONS = (
     ("starter", "Make starter"),
     ("up", "Move up"),
     ("down", "Move down"),
+    ("delete", "Delete player..."),
 )
 
 
@@ -192,7 +193,13 @@ class PlayerCard(QFrame):
         """(name, label, enabled) for the right-click menu."""
         first = self.player.depth_order == 1
         last = self.player.depth_order >= self.slot_size
-        enabled = {"edit": True, "starter": not first, "up": not first, "down": not last}
+        enabled = {
+            "edit": True,
+            "starter": not first,
+            "up": not first,
+            "down": not last,
+            "delete": True,
+        }
         return [(name, label, enabled[name]) for name, label in MENU_ACTIONS]
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:

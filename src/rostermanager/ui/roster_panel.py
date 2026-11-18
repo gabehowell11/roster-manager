@@ -1,13 +1,14 @@
 """RosterPanel: the whole roster as a scrolling list, shown over the right side of a team."""
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor, QKeyEvent, QMouseEvent
+from PySide6.QtGui import QColor, QContextMenuEvent, QKeyEvent, QMouseEvent
 from PySide6.QtWidgets import (
     QFrame,
     QGraphicsDropShadowEffect,
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QMenu,
     QPushButton,
     QScrollArea,
     QVBoxLayout,
@@ -27,10 +28,15 @@ WIDTH_SHARE = 0.27  # of the window: "roughly a quarter"
 MIN_WIDTH = 260
 
 
+ROW_ACTIONS = (("edit", "Edit details..."), ("delete", "Delete player..."))
+
+
 class RowLabel(QLabel):
-    """A label in a player's row. Clicking it emits clicked."""
+    """A label in a player's row. Clicking it emits clicked; right-click offers
+    ROW_ACTIONS and emits action_requested with the chosen name."""
 
     clicked = Signal()
+    action_requested = Signal(str)
 
     def __init__(self, text: str) -> None:
         super().__init__(text)
@@ -45,17 +51,27 @@ class RowLabel(QLabel):
             return
         super().mouseReleaseEvent(event)
 
+    def contextMenuEvent(self, event: QContextMenuEvent) -> None:
+        menu = QMenu(self)
+        for name, label in ROW_ACTIONS:
+            menu.addAction(label).setData(name)
+        chosen = menu.exec(event.globalPos())
+        if chosen is not None:
+            self.action_requested.emit(chosen.data())
+
 
 class RosterPanel(QFrame):
     """Name, position, and rating for every player, grouped by position.
 
     Starters are bold at the top of each group. Clicking a player's row emits
-    player_clicked(Player). Emits close_requested when its close button is
-    clicked; the team view decides what to do.
+    player_clicked(Player); right-click emits action_requested(Player, "edit" |
+    "delete"). Emits close_requested when its close button is clicked; the team
+    view decides what to do.
     """
 
     close_requested = Signal()
     player_clicked = Signal(object)
+    action_requested = Signal(object, str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -157,6 +173,9 @@ class RosterPanel(QFrame):
             label.setObjectName(role)  # theme.py: starters bold, backups muted
             label.setToolTip(f"Click to edit {player.name}")
             label.clicked.connect(lambda player=player: self.player_clicked.emit(player))
+            label.action_requested.connect(
+                lambda action, player=player: self.action_requested.emit(player, action)
+            )
         position.setAlignment(Qt.AlignmentFlag.AlignRight)
         score.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.grid.addWidget(name, row, 0)

@@ -63,9 +63,10 @@ def test_menu_enables_only_possible_moves(view: TeamView) -> None:
         card.player.name: {n: e for n, _l, e in card.menu_actions()}
         for card in (starter, middle, last)
     }
-    assert enabled["QB A"] == {"edit": True, "starter": False, "up": False, "down": True}
-    assert enabled["QB B"] == {"edit": True, "starter": True, "up": True, "down": True}
-    assert enabled["QB C"] == {"edit": True, "starter": True, "up": True, "down": False}
+    always = {"edit": True, "delete": True}
+    assert enabled["QB A"] == {**always, "starter": False, "up": False, "down": True}
+    assert enabled["QB B"] == {**always, "starter": True, "up": True, "down": True}
+    assert enabled["QB C"] == {**always, "starter": True, "up": True, "down": False}
 
 
 @pytest.mark.parametrize(

@@ -176,8 +176,10 @@ class RosterService:
     def remove_player(self, abbreviation: str, key: PlayerKey) -> Roster:
         return self._edit(abbreviation, lambda r: depth_editing.remove_player(r, key))
 
-    def add_player(self, abbreviation: str, data: Mapping[str, object]) -> Roster:
-        return self._edit(abbreviation, lambda r: depth_editing.add_player(r, data))
+    def add_player(
+        self, abbreviation: str, data: Mapping[str, object], starter: bool = False
+    ) -> Roster:
+        return self._edit(abbreviation, lambda r: depth_editing.add_player(r, data, starter))
 
 
 def carry_over_ratings(old: Roster, new: Roster) -> Roster:
