@@ -80,3 +80,25 @@ jobs:
           name: RosterManager-windows
           path: dist/RosterManager/
           retention-days: 14
+
+      - name: Make sure Inno Setup is available
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ISCC -ErrorAction SilentlyContinue) -and
+              -not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup --no-progress -y
+          }
+
+      - name: Build installer
+        run: python packaging/build_installer.py
+
+      - name: Install, self-test, and uninstall
+        shell: pwsh
+        run: ./packaging/test_installer.ps1
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: RosterManagerSetup
+          path: dist/RosterManagerSetup.exe
+          retention-days: 14

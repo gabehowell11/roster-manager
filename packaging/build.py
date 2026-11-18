@@ -18,6 +18,7 @@ from pathlib import Path
 import PyInstaller.__main__
 
 ROOT = Path(__file__).resolve().parent.parent
+ICON = ROOT / "packaging" / "icon.ico"  # made by packaging/make_icon.py
 TEMPLATES = ROOT / "src" / "rostermanager" / "data" / "templates"
 WORK = ROOT / "build" / "pyinstaller"
 
@@ -28,6 +29,7 @@ def build() -> None:
             str(ROOT / "packaging" / "launcher.py"),
             "--name=RosterManager",
             "--windowed",  # no console window behind the app
+            f"--icon={ICON}",  # exe icon in Explorer and on shortcuts
             "--noconfirm",
             "--clean",
             f"--distpath={ROOT / 'dist'}",

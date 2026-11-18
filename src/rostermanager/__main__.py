@@ -19,15 +19,33 @@ def main(argv: Sequence[str] | None = None) -> int:
     from PySide6.QtWidgets import QApplication
 
     from rostermanager.services import RosterService
+    from rostermanager.ui.app_icon import app_icon
     from rostermanager.ui.main_window import MainWindow
     from rostermanager.ui.theme import apply_theme
 
+    _set_taskbar_identity()
     app = QApplication([sys.argv[0], *args])
     app.setApplicationName("Roster Manager")
+    app.setWindowIcon(app_icon())
     apply_theme(app)
     window = MainWindow(RosterService())
     window.show()
     return app.exec()
+
+
+def _set_taskbar_identity() -> None:
+    """Give the app its own taskbar entry and icon instead of Python's.
+
+    Windows groups windows by AppUserModelID; without one, running from source
+    shows the python.exe icon. The installer's shortcuts use the same ID.
+    """
+    if sys.platform == "win32":
+        import ctypes
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_USER_MODEL_ID)
+
+
+APP_USER_MODEL_ID = "RosterManager.RosterManager"
 
 
 def self_test() -> int:
@@ -42,11 +60,13 @@ def self_test() -> int:
 
         from rostermanager.data import RosterRepository
         from rostermanager.services import RosterService, template_path
+        from rostermanager.ui.app_icon import app_icon
         from rostermanager.ui.main_window import MainWindow
         from rostermanager.ui.theme import apply_theme
 
         app = QApplication.instance() or QApplication([sys.argv[0]])
         assert isinstance(app, QApplication)
+        app.setWindowIcon(app_icon())
         apply_theme(app)
         for kind in ("csv", "json"):
             if not template_path(kind).is_file():
