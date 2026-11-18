@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QFileDialog,
-    QGroupBox,
     QHBoxLayout,
     QLabel,
     QListWidget,
@@ -45,6 +44,9 @@ class HomeScreen(QWidget):
         self.service = service
         self.runner = runner if runner is not None else BackgroundRunner()
 
+        self.setObjectName("Home")  # theme.py styles the small controls under #Home
+
+        # Title screen: a big name in the middle, everything else small beneath it.
         title = QLabel("Roster Manager")
         title.setObjectName("Title")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -53,59 +55,69 @@ class HomeScreen(QWidget):
         disclaimer.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Saved teams
+        saved_heading = QLabel("SAVED TEAMS")
+        saved_heading.setObjectName("Heading")
+        saved_heading.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.team_list = QListWidget()
+        self.team_list.setMaximumHeight(150)
+        self.team_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.team_list.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.team_list.itemActivated.connect(self._open_item)
         self.team_list.itemSelectionChanged.connect(self._update_buttons)
-        self.empty_label = QLabel("No saved teams yet. Download one or import a file below.")
+        self.empty_label = QLabel("No saved teams yet.")
+        self.empty_label.setObjectName("Muted")
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.open_button = QPushButton("Open team")
+        self.open_button = QPushButton("Open")
         self.open_button.clicked.connect(self._open_selected)
-        self.refresh_button = QPushButton("Refresh from NFL data")
+        self.refresh_button = QPushButton("Refresh")
         self.refresh_button.setToolTip("Download this team again to get the latest roster.")
         self.refresh_button.clicked.connect(self.start_refresh)
-        self.delete_button = QPushButton("Delete team")
+        self.delete_button = QPushButton("Delete")
         self.delete_button.clicked.connect(self.delete_selected)
-        open_row = _centered(self.open_button, self.refresh_button, self.delete_button)
-
-        self.empty_label.setObjectName("Muted")
-        saved = QGroupBox("Saved teams")
-        saved_layout = QVBoxLayout(saved)
-        saved_layout.addWidget(self.team_list)
-        saved_layout.addWidget(self.empty_label)
-        saved_layout.addLayout(open_row)
 
         # Download a real team
         self.team_picker = QComboBox()
         self.team_picker.addItems(NFL_TEAM_ABBREVIATIONS)
-        self.download_button = QPushButton("Download")
+        self.team_picker.setMinimumWidth(80)
+        self.download_button = QPushButton("Download NFL team")
+        self.download_button.setToolTip("Needs internet once; the team is then saved offline.")
         self.download_button.clicked.connect(self.start_download)
-        download = QGroupBox("Real NFL team (needs internet once)")
-        download.setLayout(_centered(self.team_picker, self.download_button))
 
         # Import a custom roster
-        self.import_button = QPushButton("Import CSV or JSON...")
+        self.import_button = QPushButton("Import file...")
+        self.import_button.setToolTip("Import a custom roster from a CSV or JSON file.")
         self.import_button.clicked.connect(self.start_import)
-        custom = QGroupBox("Custom roster")
-        self.template_button = QPushButton("Save a template...")
+        self.template_button = QPushButton("Template...")
         self.template_button.setToolTip("Save a blank CSV or JSON roster to fill in.")
         self.template_button.clicked.connect(self.save_template)
-        custom.setLayout(_centered(self.import_button, self.template_button))
 
         self.status_label = QLabel()
         self.status_label.setObjectName("Status")
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.team_picker.setMinimumWidth(90)
+        panel = QWidget()
+        panel.setFixedWidth(380)
+        panel_layout = QVBoxLayout(panel)
+        panel_layout.setContentsMargins(0, 0, 0, 0)
+        panel_layout.setSpacing(6)
+        panel_layout.addWidget(saved_heading)
+        panel_layout.addWidget(self.team_list)
+        panel_layout.addWidget(self.empty_label)
+        panel_layout.addLayout(_centered(self.open_button, self.refresh_button, self.delete_button))
+        panel_layout.addSpacing(14)
+        panel_layout.addLayout(_centered(self.team_picker, self.download_button))
+        panel_layout.addLayout(_centered(self.import_button, self.template_button))
+        panel_layout.addWidget(self.status_label)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(40, 24, 40, 16)
-        layout.setSpacing(12)
+        layout.setSpacing(4)
+        layout.addStretch(3)
         layout.addWidget(title)
         layout.addWidget(disclaimer)
-        layout.addWidget(saved, stretch=1)
-        layout.addWidget(download)
-        layout.addWidget(custom)
-        layout.addWidget(self.status_label)
+        layout.addSpacing(36)
+        layout.addWidget(panel, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addStretch(4)
 
         self.refresh()
 

@@ -1,7 +1,14 @@
 """PlayerCard: one player drawn as a card in team colors. No logos."""
 
-from PySide6.QtCore import QMimeData, QPoint, Qt, Signal
-from PySide6.QtGui import QContextMenuEvent, QDrag, QDragEnterEvent, QDropEvent, QMouseEvent
+from PySide6.QtCore import QEvent, QMimeData, QPoint, Qt, Signal
+from PySide6.QtGui import (
+    QContextMenuEvent,
+    QDrag,
+    QDragEnterEvent,
+    QDropEvent,
+    QEnterEvent,
+    QMouseEvent,
+)
 from PySide6.QtWidgets import QApplication, QFrame, QLabel, QMenu, QVBoxLayout, QWidget
 
 from rostermanager.models import Player, Team, Unit
@@ -71,11 +78,13 @@ class PlayerCard(QFrame):
     Clicking emits clicked(Player). Right-click offers depth actions and emits
     action_requested(Player, name). Dragging a card onto another emits
     swap_requested(dragged PlayerKey, target PlayerKey) from the target card.
+    The mouse moving onto or off the card emits hover_changed(True / False).
     """
 
     clicked = Signal(object)
     action_requested = Signal(object, str)
     swap_requested = Signal(object, object)
+    hover_changed = Signal(bool)
 
     def __init__(
         self, player: Player, team: Team, starter: bool, parent: QWidget | None = None
@@ -111,6 +120,14 @@ class PlayerCard(QFrame):
         self.setFixedSize(*(STARTER_SIZE if starter else BACKUP_SIZE))
         self.setToolTip(self._details())
         self._apply_style(team)
+
+    def enterEvent(self, event: QEnterEvent) -> None:
+        super().enterEvent(event)
+        self.hover_changed.emit(True)
+
+    def leaveEvent(self, event: QEvent) -> None:
+        super().leaveEvent(event)
+        self.hover_changed.emit(False)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.LeftButton:

@@ -3,6 +3,9 @@
 from pathlib import Path
 
 import pytest
+from PySide6.QtCore import QEvent, QPointF
+from PySide6.QtGui import QEnterEvent
+from PySide6.QtWidgets import QApplication
 
 from rostermanager.data import RosterRepository
 from rostermanager.models import Player, Roster, Team, Unit
@@ -231,3 +234,51 @@ def test_formation_cards_still_edit_the_real_slot(tmp_path: Path) -> None:
 
     assert view.formation_picker.currentText() == "Goal Line (23)"
     assert view.field.slot_cards["TE1"][0].player.name == "TE 3"
+
+
+def test_backups_stack_straight_down_under_the_starter() -> None:
+    for unit, label in ((Unit.OFFENSE, "WR1"), (Unit.DEFENSE, "LCB")):
+        field = field_for(unit)
+        starter, *backups = field.slot_cards[label]
+        for backup in backups:
+            assert abs(backup.geometry().center().x() - starter.geometry().center().x()) <= 1
+
+
+def stacking(field: FieldView) -> list[PlayerCard]:
+    """Cards from bottom to top (later siblings draw on top)."""
+    return [child for child in field.children() if isinstance(child, PlayerCard)]
+
+
+def test_hovering_a_backup_brings_it_in_front_of_the_starter() -> None:
+    field = field_for(Unit.OFFENSE)
+    starter, first, second, third = field.slot_cards["WR1"]
+
+    QApplication.sendEvent(second, QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1)))
+    assert stacking(field)[-1] is second
+
+    # Sliding onto the next backup: the old one's leave restores, then the new one lifts.
+    QApplication.sendEvent(second, QEvent(QEvent.Type.Leave))
+    QApplication.sendEvent(third, QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1)))
+    assert stacking(field)[-1] is third
+
+    QApplication.sendEvent(third, QEvent(QEvent.Type.Leave))
+    order = stacking(field)
+    assert order.index(starter) > order.index(first) > order.index(second) > order.index(third)
+
+
+def test_a_late_leave_does_not_drop_the_newly_lifted_backup() -> None:
+    field = field_for(Unit.OFFENSE)
+    _, first, second, _ = field.slot_cards["WR1"]
+    QApplication.sendEvent(second, QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1)))
+    QApplication.sendEvent(first, QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1)))
+    QApplication.sendEvent(second, QEvent(QEvent.Type.Leave))
+    assert stacking(field)[-1] is first
+
+
+def test_hovering_the_starter_keeps_it_in_front() -> None:
+    field = field_for(Unit.OFFENSE)
+    starter, backup = field.slot_cards["QB"]
+    QApplication.sendEvent(backup, QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1)))
+    QApplication.sendEvent(starter, QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1)))
+    order = stacking(field)
+    assert order.index(starter) > order.index(backup)
