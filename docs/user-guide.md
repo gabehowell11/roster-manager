@@ -100,7 +100,8 @@ All changes save immediately.
 
 ### Player details and rating
 
-Click any card to open the player editor.
+Click any card to open the player editor. It opens in the middle of the window
+with the field lightly blurred behind it; **Cancel**, **Save**, or Esc closes it.
 
 ![Player editor](screenshots/player_editor.png)
 

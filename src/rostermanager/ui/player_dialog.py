@@ -30,9 +30,16 @@ def depth_text(player: Player) -> str:
     return f"Backup #{player.depth_order - 1} at {player.position} (depth {player.depth_order})"
 
 
+def _number_box() -> QSpinBox:
+    """A spin box that looks like the text boxes (theme.py hides its arrows)."""
+    spin = QSpinBox()
+    spin.lineEdit().setTextMargins(6, 0, 0, 0)  # line the text up with the line edits
+    return spin
+
+
 def _optional_spin(minimum: int, maximum: int, none_text: str) -> QSpinBox:
     """A spin box whose lowest value (one below minimum) means "not set"."""
-    spin = QSpinBox()
+    spin = _number_box()
     spin.setRange(minimum - 1, maximum)
     spin.setSpecialValueText(none_text)
     return spin
@@ -78,7 +85,7 @@ class PlayerDialog(QDialog):
         self.weight = _optional_spin(100, 450, "-")
         self.weight.setSuffix(" lb")
         self.college = QLineEdit(player.college or "")
-        self.experience = QSpinBox()
+        self.experience = _number_box()
         self.experience.setRange(0, 30)
         self.experience.setSuffix(" yr")
         self.rating = _optional_spin(0, 99, "No rating")

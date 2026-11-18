@@ -20,6 +20,7 @@ from rostermanager.models import Player, Roster, Unit
 from rostermanager.services import EditError, PlayerKey, RosterService
 from rostermanager.services.formations import DEPTH_CHART, formation_names, get_formation
 from rostermanager.ui.field_view import FieldView
+from rostermanager.ui.overlay import exec_over
 from rostermanager.ui.player_dialog import PlayerDialog
 from rostermanager.ui.theme import team_title_color
 
@@ -115,8 +116,8 @@ class TeamView(QWidget):
         """Show the editor. Returns the saved roster, or None if nothing changed."""
         if self.roster is None:
             return None
-        dialog = PlayerDialog(self.service, self.roster.team, player, self)
-        dialog.exec()
+        dialog = PlayerDialog(self.service, self.roster.team, player)
+        exec_over(dialog, self.window())
         return dialog.roster
 
     def run_action(self, player: Player, action: str) -> None:

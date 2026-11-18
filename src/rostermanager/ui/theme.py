@@ -33,6 +33,14 @@ QMainWindow, QDialog, QMessageBox {{
 QLabel {{
     background: transparent;
 }}
+QDialog#Sheet {{
+    background-color: {SURFACE};
+    border: 1px solid {BORDER};
+    border-radius: 12px;
+}}
+QDialog#Sheet QPushButton {{
+    background-color: {BACKGROUND};
+}}
 QLabel#Title {{
     font-size: 64px;
     font-weight: 700;
@@ -113,11 +121,15 @@ QPushButton:disabled {{
     color: {MUTED_TEXT};
     border-color: {SURFACE};
 }}
-QListWidget, QLineEdit, QComboBox {{
+QListWidget, QLineEdit, QComboBox, QSpinBox {{
     background-color: {BACKGROUND};
     border: 1px solid {BORDER};
     border-radius: 8px;
     padding: 6px;
+}}
+QSpinBox::up-button, QSpinBox::down-button {{
+    width: 0;  /* no arrows: type a number or use the mouse wheel */
+    border: none;
 }}
 QListWidget {{
     outline: 0;  /* no dotted focus box inside the selected row */
@@ -133,7 +145,7 @@ QListWidget::item:selected {{
     background-color: {ACCENT};
     color: #FFFFFF;
 }}
-QLineEdit:focus, QComboBox:focus {{
+QLineEdit:focus, QComboBox:focus, QSpinBox:focus {{
     border-color: {ACCENT};
 }}
 QComboBox::drop-down {{

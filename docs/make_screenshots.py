@@ -23,6 +23,7 @@ from rostermanager.models import Player, Roster, RosterSource, Team, Unit
 from rostermanager.services import RosterService
 from rostermanager.services.depth_editing import PlayerKey, find_player
 from rostermanager.ui.main_window import MainWindow
+from rostermanager.ui.overlay import BlurOverlay
 from rostermanager.ui.player_dialog import PlayerDialog
 from rostermanager.ui.theme import apply_theme
 
@@ -133,12 +134,17 @@ def main() -> None:
             app.processEvents()
             window.grab().save(str(OUT / file))
 
+        # The editor as it really opens: centered over the blurred field.
+        view.show_unit(Unit.OFFENSE)
+        view.formation_picker.setCurrentText("Depth chart")
         player = find_player(service.load_roster("EXC"), PlayerKey(Unit.OFFENSE, "QB", 1))
         dialog = PlayerDialog(service, roster.team, player)
+        overlay = BlurOverlay(window, dialog)
+        overlay.show()
         dialog.show()
         app.processEvents()
-        dialog.grab().save(str(OUT / "player_editor.png"))
-        dialog.close()
+        window.grab().save(str(OUT / "player_editor.png"))
+        overlay.close_overlay()
         window.close()
     print(f"saved screenshots to {OUT}")
 
