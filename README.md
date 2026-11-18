@@ -20,6 +20,7 @@ player shown as a card and starters in front of their backups.
 - Formations: Shotgun, Singleback, I-Form, Pistol, Empty, and Goal Line on offense; 4-3, 3-4,
   Nickel, Dime, 3-3-5, and Goal Line on defense
 - Click a card to edit any player detail or give them your own 0-99 rating
+- **View roster** lists every player by position group, starters first
 - Reorder the depth chart by dragging cards, right-clicking, or from the player editor
 
 The [user guide](docs/user-guide.md) walks through all of it.

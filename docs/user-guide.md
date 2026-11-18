@@ -77,6 +77,21 @@ Select a team and click **Open** (or double-click it).
   comes to the front, so you can read it. Move off it and the stack goes back.
 - **< Teams** goes back to the home screen.
 
+### Roster list
+
+Click **View roster** for the whole roster as a list over the right side of the
+window: name, position, and rating for every player. Scroll to see everyone.
+
+![Roster list](screenshots/roster_list.png)
+
+- Offense comes first (quarterbacks, running backs, tight ends, wide receivers,
+  offensive line), then defense front to back (defensive line, linebackers,
+  cornerbacks, safeties), then special teams.
+- In each group the starters are listed first, in bold, then the backups.
+  Positions the app doesn't recognize are listed under **Other**.
+- Close it with **View roster** again, the **X**, or Esc. The list updates as you
+  edit players.
+
 ### Formations
 
 The drop-down next to the unit buttons switches between the plain **Depth

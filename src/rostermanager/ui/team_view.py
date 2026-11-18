@@ -3,6 +3,7 @@
 from collections.abc import Callable
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QKeySequence, QResizeEvent, QShortcut
 from PySide6.QtWidgets import (
     QButtonGroup,
     QComboBox,
@@ -22,6 +23,7 @@ from rostermanager.services.formations import DEPTH_CHART, formation_names, get_
 from rostermanager.ui.field_view import FieldView
 from rostermanager.ui.overlay import exec_over
 from rostermanager.ui.player_dialog import PlayerDialog
+from rostermanager.ui.roster_panel import RosterPanel, panel_width
 from rostermanager.ui.theme import team_title_color
 
 SHOWN_UNITS = (Unit.OFFENSE, Unit.DEFENSE, Unit.SPECIAL_TEAMS)
@@ -65,8 +67,13 @@ class TeamView(QWidget):
         self.formation_picker.setMinimumWidth(170)
         self.formation_picker.setToolTip("Formation")
         self.formation_picker.currentTextChanged.connect(self.choose_formation)
+        self.roster_button = QPushButton("View roster")
+        self.roster_button.setCheckable(True)
+        self.roster_button.setToolTip("Show every player as a list")
+        self.roster_button.toggled.connect(self.show_roster_panel)
         toggles.addSpacing(18)
         toggles.addWidget(self.formation_picker)
+        toggles.addWidget(self.roster_button)
         toggles.addStretch()
 
         # Back button left, title on the true center (equal side columns), toggles below.
@@ -84,27 +91,58 @@ class TeamView(QWidget):
         self.field.player_clicked.connect(self.open_player)
         self.field.action_requested.connect(self.run_action)
         self.field.swap_requested.connect(self.swap)
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(self.field)
+        self.field_scroll = QScrollArea()
+        self.field_scroll.setWidgetResizable(True)
+        self.field_scroll.setWidget(self.field)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 12, 16, 16)
         layout.setSpacing(12)
         layout.addLayout(header)
-        layout.addWidget(scroll, stretch=1)
+        layout.addWidget(self.field_scroll, stretch=1)
+
+        # Floats over the right side of the field, below the header so the
+        # buttons stay usable. Not in the layout, so it covers instead of squeezing.
+        self.roster_panel = RosterPanel(self)
+        self.roster_panel.close_requested.connect(lambda: self.roster_button.setChecked(False))
+        self.roster_panel.hide()
+        close = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
+        close.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        close.activated.connect(lambda: self.roster_button.setChecked(False))
 
     def set_roster(self, roster: Roster) -> None:
         """Show this roster, starting on offense."""
         self.roster = roster
         self.title.setText(roster.team.name)
         self.title.setStyleSheet(f"color: {team_title_color(roster.team)};")
+        self.roster_button.setChecked(False)  # a newly opened team starts on the field
+        self.roster_panel.set_roster(roster)
         self.show_unit(Unit.OFFENSE)
 
     def update_roster(self, roster: Roster) -> None:
         """Show an edited roster, staying on the current unit."""
         self.roster = roster
+        self.roster_panel.set_roster(roster)
         self.show_unit(self.unit)
+
+    def show_roster_panel(self, shown: bool) -> None:
+        """Open or close the roster list over the right side of the field."""
+        if shown:
+            self._place_roster_panel()
+            self.roster_panel.show()
+            self.roster_panel.raise_()
+            self.roster_panel.list_scroll.setFocus()  # so Esc and the arrow keys work at once
+        else:
+            self.roster_panel.hide()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        self._place_roster_panel()
+
+    def _place_roster_panel(self) -> None:
+        top = self.field_scroll.geometry().top()
+        width = min(panel_width(self.window().width()), self.width())
+        self.roster_panel.setGeometry(self.width() - width, top, width, self.height() - top)
 
     def open_player(self, player: Player) -> None:
         """Open the editor for a clicked card and redraw if anything was saved."""
