@@ -9,6 +9,24 @@ Everything is saved on your computer in
 `%LOCALAPPDATA%\RosterManager\rosters.db`. After a team is downloaded once, the
 app works offline.
 
+## Installing
+
+1. Download
+   [RosterManagerSetup.exe](https://github.com/gabehowell11/roster-manager/releases/latest/download/RosterManagerSetup.exe)
+   and run it.
+2. If Windows says **"Windows protected your PC"**, click **More info**, then
+   **Run anyway**. This appears because the installer isn't code-signed.
+3. Click through the installer. No admin password is needed. Leave **Create a
+   desktop icon** ticked to get an icon on your desktop.
+
+Open Roster Manager from the desktop icon or the Start menu. To pin it to the
+taskbar, right-click the open app's taskbar button and pick **Pin to taskbar**.
+
+To update, download and run the newest installer; it replaces the old version
+and keeps your teams. To remove it, use **Settings > Apps > Installed apps >
+Roster Manager > Uninstall**. Your saved teams stay in the folder above in case
+you reinstall; delete that folder to remove them too.
+
 ![Home screen](screenshots/home.png)
 
 ## Getting a team

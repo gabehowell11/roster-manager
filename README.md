@@ -38,10 +38,27 @@ The [user guide](docs/user-guide.md) walks through all of it.
 
 ## Download
 
-Each successful build on GitHub Actions uploads a **RosterManager-windows** artifact. Open the
-latest [CI run](https://github.com/gabehowell11/roster-manager/actions/workflows/ci.yml), download
-the artifact, unzip it anywhere, and run `RosterManager.exe`. Python is not needed. Windows may
-show a SmartScreen warning because the app is not code-signed; choose **More info > Run anyway**.
+**[Download Roster Manager for Windows](https://github.com/gabehowell11/roster-manager/releases/latest/download/RosterManagerSetup.exe)**
+(Windows 10 or 11, 64-bit)
+
+Run `RosterManagerSetup.exe`. It installs just for you, with no admin password needed, and adds
+Roster Manager to the Start menu and a desktop icon. Python is not needed. Uninstall it from
+**Settings > Apps** like any other program; your saved teams are kept.
+
+Windows may show **"Windows protected your PC"** the first time, because the installer is not
+code-signed. Click **More info**, then **Run anyway**.
+
+Every [release](https://github.com/gabehowell11/roster-manager/releases) lists what changed.
+
+### Making a release (maintainers)
+
+1. Bump `version` in `pyproject.toml` and merge it to `main`.
+2. Tag that commit and push the tag, e.g. `git tag v0.2.0` then `git push origin v0.2.0`.
+
+The Release workflow tests, builds, installs and self-tests the installer, then publishes it.
+The download link above always points at the newest release. To build the installer locally,
+install [Inno Setup 6](https://jrsoftware.org/isinfo.php) and run
+`python packaging/build_installer.py`; it writes `dist/RosterManagerSetup.exe`.
 
 ## Requirements (for development)
 

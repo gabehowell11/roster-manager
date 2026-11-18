@@ -57,6 +57,12 @@ See GitHub issues and the Project board for what's next.
 
 - Windows build: `python packaging/build.py` writes `dist/RosterManager/`; check it with
   `dist\RosterManager\RosterManager.exe --self-test`. CI builds and uploads it.
+- Installer: `python packaging/build_installer.py` (needs Inno Setup 6, not installed on this
+  machine) writes `dist/RosterManagerSetup.exe` from `packaging/installer.iss`. CI builds it and
+  runs `packaging/test_installer.ps1` (silent install, self-test, uninstall). Pushing a `v*` tag
+  that matches `pyproject.toml`'s version publishes a GitHub Release (`release.yml`).
+- App icon is drawn in `ui/app_icon.py`; after changing it run `python packaging/make_icon.py`
+  and commit `packaging/icon.ico`.
 - README screenshots: `python docs/make_screenshots.py` (offscreen, made-up team).
 - User guide: `docs/user-guide.md`. Update it when behavior changes.
 - SQLite schema is versioned (`PRAGMA user_version`, currently 2); add a migration step in
