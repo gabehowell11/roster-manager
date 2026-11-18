@@ -15,9 +15,9 @@ app works offline.
 
 ### Download a real NFL team
 
-1. On the home screen, pick a team abbreviation under **Real NFL team** (for
-   example `KC`).
-2. Click **Download**. This needs internet and takes a few seconds; the window
+1. On the home screen, pick a team abbreviation next to **Download NFL team**
+   (for example `KC`).
+2. Click **Download NFL team**. This needs internet and takes a few seconds; the window
    stays usable while it runs.
 3. The team appears under **Saved teams** with the date it was downloaded.
 
@@ -26,7 +26,7 @@ skipped). The data comes from [nflverse](https://github.com/nflverse).
 
 ### Import your own roster
 
-1. Click **Save a template...** and save a CSV (opens in Excel) or JSON file.
+1. Click **Template...** and save a CSV (opens in Excel) or JSON file.
 2. Fill in one row per player. The columns are:
 
    | Column | Required | Notes |
@@ -45,7 +45,7 @@ skipped). The data comes from [nflverse](https://github.com/nflverse).
    Each position needs exactly one starter, with backups numbered 2, 3, and so
    on. Positions that field two starters use separate labels, such as `LT` and
    `RT`, or `WR1`, `WR2`, and `WR3`.
-3. Click **Import CSV or JSON...** and pick your file. A CSV asks for the team's
+3. Click **Import file...** and pick your file. A CSV asks for the team's
    abbreviation (2-4 letters) and name; a JSON file can include its own `team`.
 
 If anything in the file is wrong, every problem is listed at once with its row
@@ -54,16 +54,16 @@ number, so you can fix them all in one pass. In Excel, save with
 
 ### Refresh, replace, and delete
 
-- **Refresh from NFL data** downloads a real team again to pick up roster moves.
+- **Refresh** downloads a real team again to pick up roster moves.
   Your ratings are kept for players still on the team; depth chart changes and
   edited details are replaced, and the app asks before doing it.
 - Downloading or importing a team whose abbreviation is already saved (for
   example a custom team called `KC`) asks before replacing it.
-- **Delete team** removes a team and everything about it, after asking.
+- **Delete** removes a team and everything about it, after asking.
 
 ## Viewing a team
 
-Select a team and click **Open team** (or double-click it).
+Select a team and click **Open** (or double-click it).
 
 ![Offense](screenshots/offense.png)
 
@@ -71,8 +71,10 @@ Select a team and click **Open team** (or double-click it).
   line is the line of scrimmage.
 - Each card shows jersey number, position, name, and rating. Hover a card for
   height, weight, college, and experience.
-- Backups sit behind the starter, fanned away from the line of scrimmage. Up to
-  three backups are shown per position.
+- Backups sit straight behind the starter, peeking out away from the line of
+  scrimmage. Up to three backups are shown per position.
+- Move the mouse from the starter onto a backup's edge and that backup's card
+  comes to the front, so you can read it. Move off it and the stack goes back.
 - **< Teams** goes back to the home screen.
 
 ### Formations

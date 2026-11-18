@@ -34,8 +34,14 @@ QLabel {{
     background: transparent;
 }}
 QLabel#Title {{
-    font-size: 28px;
+    font-size: 64px;
     font-weight: 700;
+}}
+QLabel#Heading {{
+    color: {MUTED_TEXT};
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
 }}
 QLabel#TeamTitle {{
     font-size: 26px;
@@ -47,6 +53,25 @@ QLabel#Muted {{
 }}
 QLabel#Status {{
     color: {MUTED_TEXT};
+}}
+QWidget#Home QPushButton {{
+    padding: 4px 12px;
+    font-size: 12px;
+    border-radius: 6px;
+}}
+QWidget#Home QComboBox {{
+    padding: 3px 6px;
+    font-size: 12px;
+}}
+QWidget#Home QListWidget {{
+    font-size: 12px;
+    padding: 4px;
+}}
+QWidget#Home QListWidget::item {{
+    padding: 4px 6px;
+}}
+QWidget#Home QLabel#Status {{
+    font-size: 12px;
 }}
 QGroupBox {{
     background-color: {SURFACE};

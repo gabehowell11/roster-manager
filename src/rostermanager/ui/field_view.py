@@ -1,6 +1,6 @@
 """FieldView: one unit drawn on a football field, each slot as a stack of cards."""
 
-from PySide6.QtCore import QPoint, QRect, Qt, Signal
+from PySide6.QtCore import QRect, Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPaintEvent, QPen, QResizeEvent
 from PySide6.QtWidgets import QLabel, QWidget
 
@@ -16,7 +16,7 @@ from rostermanager.ui.player_card import STARTER_SIZE, PlayerCard
 from rostermanager.ui.theme import MUTED_TEXT
 
 MAX_BACKUPS_SHOWN = 3
-BACKUP_OFFSET = QPoint(8, 12)  # each backup peeks out this far from the one in front
+BACKUP_PEEK = 16  # pixels of each backup showing past the card in front of it
 MIN_FIELD_SIZE = (1000, 600)
 
 # Muted greens so the field sits calmly on the dark blue theme.
@@ -29,9 +29,10 @@ class FieldView(QWidget):
     """Draws a depth chart on a field.
 
     The starter card sits in front at the slot's spot. Up to MAX_BACKUPS_SHOWN
-    backups sit behind it, fanned away from the line of scrimmage: downward on
-    offense, upward on defense. Hover a card for full details; click it to emit
-    player_clicked with the Player.
+    backups sit straight behind it, peeking out away from the line of scrimmage:
+    downward on offense, upward on defense. Hovering a backup lifts it in front of
+    the stack so its whole card shows; moving off it puts the stack back. Hover a
+    card for full details; click it to emit player_clicked with the Player.
     """
 
     player_clicked = Signal(object)
@@ -46,6 +47,7 @@ class FieldView(QWidget):
         self.slot_cards: dict[str, list[PlayerCard]] = {}  # starter first
         self.open_cards: dict[str, QLabel] = {}  # formation roles nobody can fill
         self.formation: Formation | None = None
+        self.lifted: tuple[str, PlayerCard] | None = None  # (slot, backup) lifted by hover
 
         self.empty_label = QLabel(self)
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -71,6 +73,7 @@ class FieldView(QWidget):
             widget.deleteLater()
         self.slot_cards = {}
         self.open_cards = {}
+        self.lifted = None
         self.chart = chart
         self.formation = formation
 
@@ -95,11 +98,15 @@ class FieldView(QWidget):
                 card.clicked.connect(self.player_clicked.emit)
                 card.action_requested.connect(self.action_requested.emit)
                 card.swap_requested.connect(self.swap_requested.emit)
-            # Later-raised widgets draw on top: deepest backup first, starter last.
-            for card in reversed(cards):
-                card.raise_()
-                card.show()
+                card.hover_changed.connect(
+                    lambda entered, label=label, card=card: self._hover_changed(
+                        label, card, entered
+                    )
+                )
             self.slot_cards[label] = cards
+            self._restack(label)
+            for card in cards:
+                card.show()
 
         if chart.players:
             self.empty_label.hide()
@@ -113,6 +120,29 @@ class FieldView(QWidget):
         super().resizeEvent(event)
         self.empty_label.setGeometry(self.rect())
         self._position_cards()
+
+    def _restack(self, label: str) -> None:
+        """Default order: later-raised widgets draw on top, so deepest backup first."""
+        for card in reversed(self.slot_cards[label]):
+            card.raise_()
+
+    def _hover_changed(self, label: str, card: PlayerCard, entered: bool) -> None:
+        if entered:
+            self._drop_lifted()
+            if not card.is_starter:
+                card.raise_()
+                self.lifted = (label, card)
+        elif self.lifted is not None and self.lifted[1] is card:
+            # Only the lifted card's own leave restores the stack, so a late leave
+            # from a neighbour can't hide a card that was just lifted.
+            self._drop_lifted()
+
+    def _drop_lifted(self) -> None:
+        if self.lifted is not None:
+            label, _ = self.lifted
+            self.lifted = None
+            if label in self.slot_cards:
+                self._restack(label)
 
     def _backup_direction(self) -> int:
         return -1 if self.chart is not None and self.chart.unit is Unit.DEFENSE else 1
@@ -128,22 +158,21 @@ class FieldView(QWidget):
             placeholder.move(left, top)
         for label, cards in self.slot_cards.items():
             spot = self.spots[label]
-            # Clamp the starter so the whole fanned stack stays inside the field.
-            spread_x = BACKUP_OFFSET.x() * (len(cards) - 1)
-            spread_y = BACKUP_OFFSET.y() * (len(cards) - 1)
+            # Clamp the starter so the whole stack stays inside the field.
+            spread = BACKUP_PEEK * (len(cards) - 1)
             min_top, max_top = (
-                (0, height - starter_h - spread_y) if downward else (spread_y, height - starter_h)
+                (0, height - starter_h - spread) if downward else (spread, height - starter_h)
             )
-            left = _clamp(round(spot.x * width) - starter_w // 2, 0, width - starter_w - spread_x)
+            left = _clamp(round(spot.x * width) - starter_w // 2, 0, width - starter_w)
             top = _clamp(round(spot.y * height) - starter_h // 2, min_top, max_top)
             for depth, card in enumerate(cards):
-                # Backups are smaller, so line up their far edge with the starter's and
-                # step them outward; otherwise they hide completely behind it.
-                x = left + starter_w - card.width() + BACKUP_OFFSET.x() * depth
+                # Backups are smaller: center them under the starter, and line up their
+                # far edge with the starter's before stepping them straight outward.
+                x = left + (starter_w - card.width()) // 2
                 if downward:
-                    y = top + starter_h - card.height() + BACKUP_OFFSET.y() * depth
+                    y = top + starter_h - card.height() + BACKUP_PEEK * depth
                 else:
-                    y = top - BACKUP_OFFSET.y() * depth
+                    y = top - BACKUP_PEEK * depth
                 card.move(x, y)
 
     def line_of_scrimmage_y(self) -> int | None:
