@@ -33,6 +33,47 @@ QMainWindow, QDialog, QMessageBox {{
 QLabel {{
     background: transparent;
 }}
+QFrame#RosterPanel {{
+    background-color: {SURFACE};
+    border-left: 1px solid {BORDER};
+    border-top-left-radius: 12px;
+}}
+QWidget#RosterRows {{
+    background: transparent;
+}}
+QLabel#PanelTitle {{
+    font-size: 20px;
+    font-weight: 700;
+}}
+QPushButton#PanelClose {{
+    padding: 0;
+    border-radius: 15px;
+    font-size: 13px;
+}}
+QLabel#ColumnHeader {{
+    color: {MUTED_TEXT};
+    font-size: 11px;
+    font-weight: 700;
+    padding-bottom: 2px;
+}}
+QLabel#UnitHeading {{
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding-top: 14px;
+}}
+QLabel#GroupHeading {{
+    color: {MUTED_TEXT};
+    font-size: 11px;
+    font-weight: 700;
+    padding-top: 8px;
+}}
+QLabel#Starter {{
+    font-weight: 700;
+}}
+QLabel#Backup {{
+    color: {MUTED_TEXT};
+}}
 QDialog#Sheet {{
     background-color: {SURFACE};
     border: 1px solid {BORDER};

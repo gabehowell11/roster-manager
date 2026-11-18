@@ -137,6 +137,10 @@ def main() -> None:
         # The editor as it really opens: centered over the blurred field.
         view.show_unit(Unit.OFFENSE)
         view.formation_picker.setCurrentText("Depth chart")
+        view.roster_button.setChecked(True)
+        app.processEvents()
+        window.grab().save(str(OUT / "roster_list.png"))
+        view.roster_button.setChecked(False)
         player = find_player(service.load_roster("EXC"), PlayerKey(Unit.OFFENSE, "QB", 1))
         dialog = PlayerDialog(service, roster.team, player)
         overlay = BlurOverlay(window, dialog)
