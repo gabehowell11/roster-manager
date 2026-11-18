@@ -1,7 +1,7 @@
 """RosterPanel: the whole roster as a scrolling list, shown over the right side of a team."""
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor, QKeyEvent
+from PySide6.QtGui import QColor, QKeyEvent, QMouseEvent
 from PySide6.QtWidgets import (
     QFrame,
     QGraphicsDropShadowEffect,
@@ -27,14 +27,35 @@ WIDTH_SHARE = 0.27  # of the window: "roughly a quarter"
 MIN_WIDTH = 260
 
 
+class RowLabel(QLabel):
+    """A label in a player's row. Clicking it emits clicked."""
+
+    clicked = Signal()
+
+    def __init__(self, text: str) -> None:
+        super().__init__(text)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(
+            event.position().toPoint()
+        ):
+            self.clicked.emit()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+
 class RosterPanel(QFrame):
     """Name, position, and rating for every player, grouped by position.
 
-    Starters are bold at the top of each group. Emits close_requested when its
-    close button is clicked; the team view decides what to do.
+    Starters are bold at the top of each group. Clicking a player's row emits
+    player_clicked(Player). Emits close_requested when its close button is
+    clicked; the team view decides what to do.
     """
 
     close_requested = Signal()
+    player_clicked = Signal(object)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -79,7 +100,7 @@ class RosterPanel(QFrame):
         layout.addLayout(top)
         layout.addWidget(self.list_scroll, stretch=1)
 
-        self.player_rows: list[tuple[Player, QLabel, QLabel, QLabel]] = []
+        self.player_rows: list[tuple[Player, RowLabel, RowLabel, RowLabel]] = []
 
     def set_roster(self, roster: Roster) -> None:
         """Rebuild the list for this roster."""
@@ -127,13 +148,15 @@ class RosterPanel(QFrame):
 
     def _add_player(self, player: Player, row: int) -> None:
         rating = str(player.rating) if player.rating is not None else "--"
-        name = QLabel(player.name)
-        position = QLabel(player.position)
-        score = QLabel(rating)
+        name = RowLabel(player.name)
+        position = RowLabel(player.position)
+        score = RowLabel(rating)
         role = "Starter" if player.depth_order == 1 else "Backup"
+        name.setProperty("link", True)  # theme.py: name lights up on hover
         for label in (name, position, score):
             label.setObjectName(role)  # theme.py: starters bold, backups muted
-        name.setToolTip(f"{player.name}, {player.position} ({role.lower()})")
+            label.setToolTip(f"Click to edit {player.name}")
+            label.clicked.connect(lambda player=player: self.player_clicked.emit(player))
         position.setAlignment(Qt.AlignmentFlag.AlignRight)
         score.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.grid.addWidget(name, row, 0)

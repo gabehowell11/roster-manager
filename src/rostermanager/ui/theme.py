@@ -74,6 +74,10 @@ QLabel#Starter {{
 QLabel#Backup {{
     color: {MUTED_TEXT};
 }}
+QLabel[link="true"]:hover {{
+    color: {ACCENT_HOVER};
+    text-decoration: underline;
+}}
 QDialog#Sheet {{
     background-color: {SURFACE};
     border: 1px solid {BORDER};
