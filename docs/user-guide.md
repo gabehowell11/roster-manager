@@ -90,7 +90,8 @@ window: name, position, and rating for every player. Scroll to see everyone.
 - In each group the starters are listed first, in bold, then the backups.
   Positions the app doesn't recognize are listed under **Other**.
 - Click a player in the list to open the same player editor as clicking their
-  card. The list stays open and updates when you save.
+  card. The list stays open and updates when you save. Right-click a player for
+  *Edit details* or *Delete player*.
 - Close it with **View roster** again, the **X**, or Esc.
 
 ### Formations
@@ -127,14 +128,24 @@ or unit moves the player to the end of that position's depth chart. If a value
 is not allowed, the editor says why and nothing is saved. **Delete player**
 removes the player after asking; the backups behind them move up.
 
+### Adding and deleting players
+
+- **+ Add player** (next to **View roster**) opens the same editor with blank
+  fields. Name and position are required; the unit starts on the side you're
+  viewing. New players join the end of their position's depth chart, or tick
+  **Make starter** to put them first.
+- To delete a player, use **Delete player** in the editor, or right-click their
+  card or their row in the roster list and pick **Delete player...**. The app
+  always asks "Are you sure?" first, and Cancel is the default.
+
 ### Reordering the depth chart
 
 Three ways, use whichever is handiest:
 
 - **Drag a card onto another card** to swap the two players. This works between
   positions too, for example moving a backup corner from `LCB` to `RCB`.
-- **Right-click a card** for *Make starter*, *Move up*, *Move down*, or *Edit
-  details...*.
+- **Right-click a card** for *Make starter*, *Move up*, *Move down*, *Edit
+  details...*, or *Delete player...*.
 - In the **player editor**, use *Make starter*, *Move up*, or *Move down*.
 
 Reordering also works while viewing a formation; it changes the real depth chart

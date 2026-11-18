@@ -2,13 +2,13 @@
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QFormLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QMessageBox,
     QPushButton,
     QSpinBox,
     QVBoxLayout,
@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 from rostermanager.models import Player, Roster, Team, Unit
 from rostermanager.services import EditError, PlayerKey, RosterService
 from rostermanager.services.depth_editing import find_player
+from rostermanager.ui.overlay import confirm_over
 from rostermanager.ui.theme import team_title_color
 
 NONE = -1  # spin box value meaning "not set"; shown as a dash
@@ -113,6 +114,7 @@ class PlayerDialog(QDialog):
         self.error_label.hide()
 
         self.delete_button = QPushButton("Delete player")
+        self.delete_button.setObjectName("Danger")
         self.delete_button.clicked.connect(self.delete_player)
         self.cancel_button = QPushButton("Cancel")
         self.cancel_button.clicked.connect(self.reject)
@@ -137,12 +139,12 @@ class PlayerDialog(QDialog):
         for button in (self.starter_button, self.up_button, self.down_button):
             depth_row.addWidget(button)
         depth_row.addStretch()
-        depth_note = QLabel("Depth chart changes save right away")
-        depth_note.setObjectName("Muted")
-        depth_note.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.depth_note = QLabel("Depth chart changes save right away")
+        self.depth_note.setObjectName("Muted")
+        self.depth_note.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.extra = QVBoxLayout()
         self.extra.addLayout(depth_row)
-        self.extra.addWidget(depth_note)
+        self.extra.addWidget(self.depth_note)
         self._update_depth_buttons()
 
         layout = QVBoxLayout(self)
@@ -154,9 +156,9 @@ class PlayerDialog(QDialog):
         layout.addWidget(self.error_label)
         layout.addLayout(buttons)
 
-    def changes(self) -> dict[str, object]:
-        """Only the fields the user changed, ready for update_player."""
-        values: dict[str, object] = {
+    def values(self) -> dict[str, object]:
+        """Every field as entered, ready for update_player or add_player."""
+        return {
             "name": self.name.text(),
             "position": self.position.text(),
             "unit": Unit(self.unit.currentData()),
@@ -167,6 +169,10 @@ class PlayerDialog(QDialog):
             "years_experience": self.experience.value(),
             "rating": _from_spin(self.rating),
         }
+
+    def changes(self) -> dict[str, object]:
+        """Only the fields the user changed, ready for update_player."""
+        values = self.values()
         current = self.player.model_dump()
         current["height"] = _height_text(self.player.height) or None
         current["college"] = self.player.college or ""
@@ -215,7 +221,7 @@ class PlayerDialog(QDialog):
         self.down_button.setEnabled(self.key.depth_order < self._slot_size())
 
     def delete_player(self) -> None:
-        if not self.confirm(f"Delete {self.player.name} from the roster? This cannot be undone."):
+        if not self.confirm(delete_question(self.player)):
             return
         try:
             self.roster = self.service.remove_player(self.team.abbreviation, self.key)
@@ -229,9 +235,76 @@ class PlayerDialog(QDialog):
         self.error_label.show()
 
     def confirm(self, text: str) -> bool:
-        """Ask a yes/no question. Separate so tests can answer it."""
-        answer = QMessageBox.question(self, "Please confirm", text)
-        return answer == QMessageBox.StandardButton.Yes
+        """Ask a yes/no question in the app. Separate so tests can answer it."""
+        return confirm_over(self.window(), "Delete player?", text, yes_text="Delete")
+
+
+class AddPlayerDialog(PlayerDialog):
+    """The player editor with blank fields, for adding a new player.
+
+    New players go to the end of their position's depth chart unless "Make
+    starter" is ticked. After an accepted exec(), roster holds the saved roster.
+    """
+
+    def __init__(
+        self,
+        service: RosterService,
+        team: Team,
+        unit: Unit = Unit.OFFENSE,
+        parent: QWidget | None = None,
+    ) -> None:
+        blank = Player.model_construct(
+            name="",
+            position="",
+            unit=unit,
+            jersey_number=None,
+            height=None,
+            weight=None,
+            college=None,
+            years_experience=0,
+            rating=None,
+            depth_order=1,
+        )
+        super().__init__(service, team, blank, parent)
+        self.setWindowTitle("Add player")
+        self.heading.setText("Add player")
+        self.depth_label.setText("Name and position are required; the rest is optional.")
+        self.name.setPlaceholderText("Full name")
+        self.position.setPlaceholderText("e.g. QB, WR2, LCB")
+        for widget in (
+            self.starter_button,
+            self.up_button,
+            self.down_button,
+            self.depth_note,
+            self.delete_button,
+        ):
+            widget.hide()
+        self.starter_check = QCheckBox("Make starter (otherwise added as the last backup)")
+        self.extra.addWidget(self.starter_check)
+        self.save_button.setText("Add player")
+
+    def save(self) -> None:
+        if not self.name.text().strip():
+            self.show_error("Enter the player's name.")
+            return
+        if not self.position.text().strip():
+            self.show_error("Enter a position, like QB, WR2, or LCB.")
+            return
+        try:
+            self.roster = self.service.add_player(
+                self.team.abbreviation, self.values(), starter=self.starter_check.isChecked()
+            )
+        except EditError as error:
+            self.show_error(str(error))
+            return
+        self.accept()
+
+
+def delete_question(player: Player) -> str:
+    """The text of the are-you-sure prompt before deleting a player."""
+    return (
+        f"Are you sure you want to delete {player.name} ({player.position})? This cannot be undone."
+    )
 
 
 def _or_none(value: int | None) -> int:

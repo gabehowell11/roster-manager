@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QGraphicsBlurEffect,
     QGraphicsDropShadowEffect,
     QLabel,
+    QMessageBox,
     QWidget,
 )
 
@@ -90,3 +91,21 @@ def exec_over(dialog: QDialog, host: QWidget) -> int:
         return dialog.exec()
     finally:
         overlay.close_overlay()
+
+
+def confirm_over(host: QWidget, title: str, text: str, yes_text: str = "Yes") -> bool:
+    """Ask a yes/no question in the middle of host, over the blur. No is the default."""
+    box = QMessageBox()
+    box.setIcon(QMessageBox.Icon.Question)
+    box.setText(f"<b>{title}</b>")
+    box.setInformativeText(text)
+    # Wide enough that a one-line question doesn't wrap into a narrow column.
+    box.setStyleSheet("QLabel#qt_msgbox_informativelabel { min-width: 300px; }")
+    yes = box.addButton(yes_text, QMessageBox.ButtonRole.YesRole)
+    if yes_text == "Delete":
+        yes.setObjectName("Danger")
+    no = box.addButton("Cancel", QMessageBox.ButtonRole.NoRole)
+    box.setDefaultButton(no)
+    box.setEscapeButton(no)
+    exec_over(box, host)
+    return box.clickedButton() is yes

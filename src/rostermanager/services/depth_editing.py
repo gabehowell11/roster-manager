@@ -126,15 +126,22 @@ def remove_player(roster: Roster, key: PlayerKey) -> Roster:
     return _close_gaps(_rebuild(roster, remaining, check=False), key.unit, key.position)
 
 
-def add_player(roster: Roster, data: Mapping[str, object]) -> Roster:
-    """Add a player at the end of their slot (depth_order is assigned)."""
+def add_player(roster: Roster, data: Mapping[str, object], starter: bool = False) -> Roster:
+    """Add a player at the end of their slot (depth_order is assigned).
+
+    With starter=True they become the starter and everyone else in the slot moves
+    down one.
+    """
     fields = {k: v for k, v in data.items() if k != "depth_order"}
     try:
         probe = Player.model_validate({**fields, "depth_order": 1})
     except ValidationError as error:
         raise EditError(describe(error)) from None
     depth = len(slot_players(roster, probe.unit, probe.position)) + 1
-    return _rebuild(roster, [*roster.players, probe.model_copy(update={"depth_order": depth})])
+    added = _rebuild(roster, [*roster.players, probe.model_copy(update={"depth_order": depth})])
+    if starter and depth > 1:
+        return make_starter(added, PlayerKey(probe.unit, probe.position, depth))
+    return added
 
 
 def describe(error: ValidationError) -> str:
