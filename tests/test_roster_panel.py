@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtTest import QTest
 
 from rostermanager.data import RosterRepository
@@ -11,6 +11,8 @@ from rostermanager.models import Player, Roster, Team
 from rostermanager.services import PlayerKey, RosterService
 from rostermanager.services.roster_list import roster_groups
 from rostermanager.ui.main_window import MainWindow
+from rostermanager.ui.overlay import BlurOverlay
+from rostermanager.ui.player_dialog import PlayerDialog
 from rostermanager.ui.roster_panel import MIN_WIDTH, RosterPanel, panel_width
 
 pytestmark = pytest.mark.usefixtures("qapp")
@@ -116,3 +118,56 @@ def test_opening_another_team_starts_with_the_panel_closed(window: MainWindow) -
 def test_panel_never_narrower_than_readable() -> None:
     assert panel_width(400) == MIN_WIDTH
     assert panel_width(2000) == 540
+
+
+def test_clicking_any_part_of_a_row_emits_that_player() -> None:
+    panel = RosterPanel()
+    panel.set_roster(ROSTER)
+    clicked: list[Player] = []
+    panel.player_clicked.connect(clicked.append)
+    player, name, position, rating = panel.player_rows[0]
+    for label in (name, position, rating):
+        QTest.mouseClick(label, Qt.MouseButton.LeftButton)
+    assert clicked == [player, player, player]
+
+
+def test_right_click_does_not_open_the_editor() -> None:
+    panel = RosterPanel()
+    panel.set_roster(ROSTER)
+    clicked: list[Player] = []
+    panel.player_clicked.connect(clicked.append)
+    QTest.mouseClick(panel.player_rows[0][1], Qt.MouseButton.RightButton)
+    assert clicked == []
+
+
+def test_clicking_a_name_opens_the_editor_over_the_window(window: MainWindow) -> None:
+    view = window.team_view
+    view.roster_button.click()
+    seen: dict[str, object] = {}
+
+    def check_and_close() -> None:
+        dialog = window.findChild(PlayerDialog)
+        assert dialog is not None
+        seen["name"] = dialog.player.name
+        seen["overlay"] = isinstance(dialog.parent(), BlurOverlay)
+        dialog.reject()
+
+    QTimer.singleShot(0, check_and_close)
+    row = next(r for r in view.roster_panel.player_rows if r[0].name == "Corner")
+    QTest.mouseClick(row[1], Qt.MouseButton.LeftButton)
+    assert seen == {"name": "Corner", "overlay": True}
+    assert view.roster_panel.isVisible()  # the list stays open behind the editor
+
+
+def test_saving_from_the_list_updates_the_list(window: MainWindow) -> None:
+    view = window.team_view
+    view.roster_button.click()
+
+    def edit(player: Player) -> Roster:
+        return window.service.update_player("XYZ", PlayerKey.of(player), {"rating": 12})
+
+    view.run_player_dialog = edit  # type: ignore[method-assign]
+    row = next(r for r in view.roster_panel.player_rows if r[0].name == "Lefty")
+    QTest.mouseClick(row[1], Qt.MouseButton.LeftButton)
+    ratings = {p.name: r.text() for p, _, _, r in view.roster_panel.player_rows}
+    assert ratings["Lefty"] == "12"

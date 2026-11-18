@@ -89,8 +89,9 @@ window: name, position, and rating for every player. Scroll to see everyone.
   cornerbacks, safeties), then special teams.
 - In each group the starters are listed first, in bold, then the backups.
   Positions the app doesn't recognize are listed under **Other**.
-- Close it with **View roster** again, the **X**, or Esc. The list updates as you
-  edit players.
+- Click a player in the list to open the same player editor as clicking their
+  card. The list stays open and updates when you save.
+- Close it with **View roster** again, the **X**, or Esc.
 
 ### Formations
 

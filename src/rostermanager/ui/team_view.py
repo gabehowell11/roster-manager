@@ -105,6 +105,7 @@ class TeamView(QWidget):
         # buttons stay usable. Not in the layout, so it covers instead of squeezing.
         self.roster_panel = RosterPanel(self)
         self.roster_panel.close_requested.connect(lambda: self.roster_button.setChecked(False))
+        self.roster_panel.player_clicked.connect(self.open_player)
         self.roster_panel.hide()
         close = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
         close.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
