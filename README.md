@@ -92,15 +92,19 @@ chart, and switch formations. Everything is saved locally, so it works offline.
 ## Architecture
 
 ```mermaid
-flowchart TD
-    UI["ui/ - PySide6 widgets<br/>home screen, field view, cards, editor, roster panel"]
-    SVC["services/ - roster logic<br/>depth chart edits, field layout, formations, roster ordering"]
-    DATA["data/ - SQLite repository, nflverse download, CSV/JSON import"]
-    MODELS["models/ - pydantic: Player, Team, Roster, DepthChart"]
+flowchart LR
+    UI["<b>ui/</b><br/>PySide6 widgets"]
+    SVC["<b>services/</b><br/>roster logic"]
+    DATA["<b>data/</b><br/>SQLite, imports"]
+    MODELS["<b>models/</b><br/>pydantic"]
     UI --> SVC --> DATA --> MODELS
     SVC --> MODELS
 ```
 
+- **What lives where.** `ui/` has the home screen, field view, cards, editor, and roster panel;
+  `services/` has depth chart edits, field layout, formations, and roster ordering; `data/` has
+  the SQLite repository, the nflverse download, and the CSV/JSON importer; `models/` has
+  `Player`, `Team`, `Roster`, and `DepthChart`.
 - **Dependencies only point down.** PySide6 is imported only in `ui/`. A test enforces it, so all
   roster logic runs and is tested without a GUI.
 - **The UI never touches SQLite.** It calls `RosterService`, which loads, edits, validates, and
