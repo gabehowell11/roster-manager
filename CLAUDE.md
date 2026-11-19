@@ -53,7 +53,10 @@ Do not use NFL logos or official branding. Team names and colors only. README st
 
 Phases 1-4 are done: setup, models and imports, the roster/field UI, and editing,
 formations, special teams, refresh, the Windows build, and docs (issues #19-#35, #45).
-See GitHub issues and the Project board for what's next.
+Polish after that (PRs #54-#59): title-screen home, hover-to-front backups, blurred in-app
+editor and confirm prompts, View roster side panel, add/delete players, the installer.
+v0.1.0 is released. The README doubles as a portfolio page (tech stack, architecture, AI
+lessons); keep its numbers (test count, PR count) current when they change.
 
 - Windows build: `python packaging/build.py` writes `dist/RosterManager/`; check it with
   `dist\RosterManager\RosterManager.exe --self-test`. CI builds and uploads it.

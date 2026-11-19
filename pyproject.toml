@@ -5,8 +5,17 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "rostermanager"
 version = "0.1.0"
+description = "Windows desktop app for viewing and editing football rosters on a field."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Gabriel Howell" }]
 requires-python = ">=3.12"
 dependencies = ["PySide6", "pydantic", "platformdirs"]
+
+[project.urls]
+Homepage = "https://github.com/gabehowell11/roster-manager"
+Download = "https://github.com/gabehowell11/roster-manager/releases/latest"
+Issues = "https://github.com/gabehowell11/roster-manager/issues"
 
 [project.optional-dependencies]
 dev = ["pytest", "ruff", "mypy", "pre-commit", "pyinstaller"]
